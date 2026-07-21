@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<!-- saved from url=(0071)file:///C:/Users/Utente/Downloads/app_logistica_lucca_comics%20(1).html -->
+<html lang="it"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Viping — App Logistica Lucca Comics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="./Viping — App Logistica Lucca Comics_files/css2" rel="stylesheet">
+<link rel="stylesheet" href="./Viping — App Logistica Lucca Comics_files/leaflet.min.css">
+<style>
+  :root{
+    --bg:#0F1B2E; --panel:#16243B; --panel-2:#1C2E4A; --line:#2A3E5C;
+    --ink:#EDF1F7; --ink-dim:#9FB0C9;
+    --amber:#F2A93B; --green:#4CAF7D; --red:#E2604F; --blue:#5B9BD5; --purple:#9D8CE0;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(1200px 600px at 15% -10%, #16294a 0%, var(--bg) 55%);
+    color:var(--ink); font-family:'Inter',sans-serif; min-height:100vh; padding:28px 20px 60px;
+  }
+  .wrap{max-width:1280px; margin:0 auto;}
+  header{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom:1px solid var(--line); padding-bottom:18px; margin-bottom:20px; flex-wrap:wrap; gap:14px;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .mark{
+    width:38px;height:38px;border-radius:8px;
+    background: linear-gradient(135deg, var(--amber), #c97f1f);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-weight:700;color:#1a1206;font-size:18px;
+  }
+  .brand h1{font-family:'Space Grotesk'; font-weight:700; font-size:20px; margin:0; letter-spacing:0.5px;}
+  .brand p{margin:2px 0 0; font-size:12.5px; color:var(--ink-dim);}
+  .meta{text-align:right; font-family:'IBM Plex Mono'; font-size:12px; color:var(--ink-dim);}
+  .meta b{color:var(--amber); font-weight:600;}
+
+  .tabs{display:flex; gap:7px; margin-bottom:22px; flex-wrap:wrap;}
+  .tab-btn{
+    background:var(--panel); border:1px solid var(--line); color:var(--ink-dim);
+    padding:9px 14px; border-radius:8px; font-family:'Space Grotesk'; font-weight:600; font-size:11.8px;
+    cursor:pointer; transition:.15s;
+  }
+  .tab-btn.active{ background:var(--amber); color:#1a1206; border-color:var(--amber); }
+  .tab-btn:hover:not(.active){ border-color:var(--amber); color:var(--ink); }
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  h2.section-title{
+    font-family:'Space Grotesk'; font-size:13px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--ink-dim); margin:0 0 14px;
+    display:flex; align-items:center; gap:8px; justify-content:space-between;
+  }
+  h2.section-title .lbl::before{content:''; width:6px; height:6px; background:var(--amber); border-radius:50%; display:inline-block; margin-right:8px;}
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:20px;}
+  .grid{display:grid; grid-template-columns: 1fr 1.15fr; gap:22px;}
+  @media (max-width: 900px){ .grid{grid-template-columns:1fr;} }
+
+  .stats{display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
+  .stat{flex:1; min-width:100px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px;}
+  .stat .num{font-family:'Space Grotesk'; font-weight:700; font-size:22px; color:var(--amber);}
+  .stat .lbl2{font-size:10.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.7px; margin-top:2px;}
+  .stat.red .num{ color:var(--red); } .stat.green .num{ color:var(--green); } .stat.blue .num{ color:var(--blue); }
+
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:20px;
+    font-family:'IBM Plex Mono'; font-size:10.5px; font-weight:700;
+  }
+  .badge::before{content:''; width:6px; height:6px; border-radius:50%;}
+  .badge.Alta, .badge.ritardo{ background:rgba(226,96,79,0.15); color:var(--red); }
+  .badge.Alta::before, .badge.ritardo::before{background:var(--red);}
+  .badge.Media, .badge.attesa{ background:rgba(242,169,59,0.15); color:var(--amber); }
+  .badge.Media::before, .badge.attesa::before{background:var(--amber);}
+  .badge.Bassa, .badge.corso{ background:rgba(91,155,213,0.15); color:var(--blue); }
+  .badge.Bassa::before, .badge.corso::before{background:var(--blue);}
+  .badge.completata{ background:rgba(76,175,125,0.15); color:var(--green); }
+  .badge.completata::before{background:var(--green);}
+  .badge.arrivo{ background:rgba(76,175,125,0.15); color:var(--green); }
+  .badge.partenza{ background:rgba(91,155,213,0.15); color:var(--blue); }
+  .badge.standard{ background:rgba(242,169,59,0.15); color:var(--amber); }
+  .badge.corriere{ background:rgba(157,140,224,0.18); color:var(--purple); }
+  .role-badge{ display:inline-block; font-family:'IBM Plex Mono'; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; }
+  .role-badge.Carrellista{ background:rgba(242,169,59,0.15); color:var(--amber); }
+  .role-badge.Facchino{ background:rgba(91,155,213,0.15); color:var(--blue); }
+  .role-badge.Magazziniere{ background:rgba(76,175,125,0.15); color:var(--green); }
+  .role-badge.Autista{ background:rgba(157,140,224,0.18); color:var(--purple); }
+
+  label.field-label{
+    display:block; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:0.5px;
+    color:var(--ink-dim); text-transform:uppercase; margin:14px 0 6px;
+  }
+  label.field-label:first-child{margin-top:0;}
+  select, input[type=text], textarea{
+    width:100%; background:var(--panel-2); color:var(--ink); border:1px solid var(--line);
+    border-radius:8px; padding:10px 12px; font-family:'Inter'; font-size:13px; resize:vertical;
+  }
+  select:focus, input:focus, textarea:focus{ outline:2px solid var(--amber); outline-offset:1px; }
+  textarea{min-height:64px; line-height:1.4;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  button.primary-btn{
+    width:100%; margin-top:14px; padding:12px;
+    background: linear-gradient(135deg, var(--amber), #c97f1f);
+    color:#1a1206; border:none; border-radius:8px;
+    font-family:'Space Grotesk'; font-weight:700; font-size:13.5px; letter-spacing:0.3px; cursor:pointer;
+  }
+  button.primary-btn:hover{ box-shadow:0 6px 20px rgba(242,169,59,0.25); }
+  button.primary-btn:disabled{ opacity:0.35; cursor:not-allowed; box-shadow:none; }
+  button.green-btn{ background:linear-gradient(135deg, var(--green), #2f8f5e); color:#062015; }
+
+  .print-btn{
+    width:100%; margin-top:10px; padding:11px;
+    background:var(--panel-2); border:1px solid var(--amber); color:var(--amber);
+    border-radius:8px; font-family:'Space Grotesk'; font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  .print-btn:hover{ background:var(--amber); color:#1a1206; }
+
+  .filters{ display:flex; gap:7px; margin-bottom:12px; flex-wrap:wrap; }
+  .filter-btn{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--ink-dim);
+    padding:6px 12px; border-radius:20px; font-size:10.8px; font-family:'IBM Plex Mono'; cursor:pointer;
+  }
+  .filter-btn.active{ background:var(--amber); color:#1a1206; border-color:var(--amber); font-weight:600; }
+
+  table{width:100%; border-collapse:collapse; font-size:12.2px;}
+  thead th{
+    text-align:left; font-family:'IBM Plex Mono'; font-size:10px; color:var(--ink-dim);
+    text-transform:uppercase; letter-spacing:0.5px; padding:7px 6px; border-bottom:1px solid var(--line);
+  }
+  tbody td{padding:7px 6px; border-bottom:1px dashed var(--line); vertical-align:middle;}
+  tbody tr:hover{background:var(--panel-2);}
+  .empty-hint{color:var(--ink-dim); font-size:12.5px; padding:16px 4px; text-align:center;}
+
+  #map1, #map2{ width:100%; height:300px; border-radius:10px; border:1px solid var(--line); }
+
+  .stand-row{ display:grid; grid-template-columns: 22px 1fr auto; align-items:center; gap:8px; padding:8px; border-radius:8px; margin-bottom:5px; }
+  .stand-row:hover{background:var(--panel-2);}
+  .stand-row input[type=checkbox]{ width:15px;height:15px; accent-color:var(--amber); }
+  .stand-name{font-size:12.5px; font-weight:500;}
+  select.priority{ background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:5px 7px; font-family:'IBM Plex Mono'; font-size:10px; }
+  select.dest-select, input.materiale-input{ width:100%; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:7px 9px; font-family:'Inter'; font-size:12px; margin-top:5px; }
+
+  .route-item{ display:grid; grid-template-columns: 24px 1fr; gap:9px; align-items:center; padding:8px 5px; border-bottom:1px dashed var(--line); font-size:12.2px; }
+  .seq-badge{ width:20px; height:20px; border-radius:50%; background:var(--amber); color:#1a1206; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-weight:700; font-size:10px; }
+
+  .photo-box{ margin-top:8px; border:1.5px dashed var(--line); border-radius:10px; padding:14px; text-align:center; cursor:pointer; background:var(--panel-2); }
+  .photo-box:hover{border-color:var(--amber);}
+  .photo-box .hint{font-size:11.5px; color:var(--ink-dim);}
+  .photo-preview{width:100%; max-height:130px; object-fit:cover; border-radius:8px; display:block;}
+  input[type=file]{display:none;}
+  .sig-wrap{ margin-top:8px; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#0B1424; }
+  canvas#sigPad{ display:block; width:100%; height:110px; touch-action:none; cursor:crosshair; }
+  .sig-actions{display:flex; justify-content:space-between; align-items:center; padding:7px 11px; background:var(--panel-2);}
+  .sig-actions span{font-family:'IBM Plex Mono'; font-size:10px; color:var(--ink-dim);}
+  .clear-btn{ background:none; border:1px solid var(--line); color:var(--ink-dim); border-radius:6px; padding:4px 9px; font-size:10.5px; cursor:pointer; font-family:'IBM Plex Mono'; }
+  .clear-btn:hover{ border-color:var(--red); color:var(--red); }
+  .log-item{ border:1px solid var(--line); border-radius:9px; padding:10px; margin-bottom:8px; background:var(--panel-2); display:grid; grid-template-columns:40px 1fr auto; gap:10px; align-items:center; }
+  .log-thumb{width:40px; height:40px; border-radius:7px; object-fit:cover; background:#0B1424;}
+
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px;}
+  @media (max-width:800px){ .kpis{grid-template-columns:repeat(2,1fr);} }
+  .kpi{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:13px 15px;}
+  .kpi .num{font-family:'Space Grotesk'; font-weight:700; font-size:23px;}
+  .kpi .lbl2{font-size:10px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px;}
+  .kpi.amber .num{color:var(--amber);} .kpi.green .num{color:var(--green);} .kpi.red .num{color:var(--red);} .kpi.blue .num{color:var(--blue);}
+
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:16px; }
+  .mode-btn{ flex:1; padding:13px; border-radius:9px; border:1px solid var(--line); background:var(--panel); color:var(--ink-dim); font-family:'Space Grotesk'; font-weight:700; font-size:13px; cursor:pointer; text-align:center; }
+  .mode-btn.arrivi.active{ background:rgba(76,175,125,0.15); border-color:var(--green); color:var(--green); }
+  .mode-btn.partenze.active{ background:rgba(91,155,213,0.15); border-color:var(--blue); color:var(--blue); }
+  .type-toggle{ display:flex; gap:7px; margin-bottom:14px; }
+  .type-btn{ flex:1; padding:9px; border-radius:8px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); font-family:'Space Grotesk'; font-weight:600; font-size:11.8px; cursor:pointer; text-align:center; }
+  .type-btn.active{ background:rgba(242,169,59,0.16); border-color:var(--amber); color:var(--amber); }
+
+  .chip-row{ display:flex; gap:7px; flex-wrap:wrap; margin-top:6px; }
+  .chip{ background:var(--panel-2); border:1px solid var(--line); color:var(--ink-dim); padding:6px 11px; border-radius:20px; font-size:11px; font-family:'IBM Plex Mono'; cursor:pointer; }
+  .chip.selected{ background:var(--amber); color:#1a1206; border-color:var(--amber); font-weight:600; }
+  .toggle-row{ display:flex; gap:8px; margin-top:6px; }
+  .toggle-btn{ flex:1; background:var(--panel-2); border:1px solid var(--line); color:var(--ink-dim); padding:9px; border-radius:8px; font-size:12px; font-family:'Space Grotesk'; font-weight:600; cursor:pointer; text-align:center; }
+  .toggle-btn.ok.selected{ background:rgba(76,175,125,0.18); border-color:var(--green); color:var(--green); }
+  .toggle-btn.problem.selected{ background:rgba(226,96,79,0.18); border-color:var(--red); color:var(--red); }
+
+  .clock-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px;}
+  .clock-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .clock-card .name{font-family:'Space Grotesk'; font-weight:700; font-size:13.5px;}
+  .clock-card .status{ display:inline-flex; align-items:center; gap:5px; margin-top:5px; font-family:'IBM Plex Mono'; font-size:10px; padding:3px 8px; border-radius:20px; }
+  .status.libero{ background:rgba(154,171,201,0.12); color:var(--ink-dim); }
+  .status.attivo{ background:rgba(76,175,125,0.15); color:var(--green); }
+  .clock-card .timer{ font-family:'IBM Plex Mono'; font-size:20px; font-weight:600; margin:10px 0 2px; }
+  .clock-btn{ width:100%; margin-top:10px; padding:9px; border:none; border-radius:8px; font-family:'Space Grotesk'; font-weight:700; font-size:12px; cursor:pointer; }
+  .clock-btn.entra{ background:linear-gradient(135deg, var(--green), #2f8f5e); color:#062015; }
+  .clock-btn.esci{ background:linear-gradient(135deg, var(--red), #a8392c); color:#2a0c07; }
+
+  .add-row{ display:flex; gap:8px; margin-top:14px; }
+  .add-row input{ flex:1; background:var(--panel-2); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:9px 12px; font-family:'Inter'; font-size:12.5px; }
+  .add-row select{ background:var(--panel-2); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:9px 12px; font-family:'Inter'; font-size:12.5px; }
+  .add-row button{ background:var(--panel-2); border:1px solid var(--amber); color:var(--amber); border-radius:8px; padding:9px 16px; font-family:'Space Grotesk'; font-weight:600; font-size:11.8px; cursor:pointer; white-space:nowrap; }
+  .add-row button:hover{ background:var(--amber); color:#1a1206; }
+
+  .remove-btn{ background:none; border:1px solid var(--line); color:var(--ink-dim); border-radius:6px; padding:5px 8px; font-size:10px; cursor:pointer; font-family:'IBM Plex Mono'; }
+  .remove-btn:hover{ border-color:var(--red); color:var(--red); }
+
+  #printReport{ display:none; }
+  @media print{
+    body *{ visibility:hidden; }
+    #printReport, #printReport *{ visibility:visible; }
+    #printReport{ display:block; position:absolute; top:0; left:0; width:100%; background:#fff; color:#111; padding:20px; font-family:Arial, sans-serif; }
+    #printReport h1{ font-size:18px; margin:0 0 2px; }
+    #printReport .sub{ font-size:11px; color:#555; margin-bottom:14px; }
+    #printReport table{ width:100%; border-collapse:collapse; font-size:11px; margin-bottom:10px; }
+    #printReport th{ text-align:left; border-bottom:1.5px solid #333; padding:6px 4px; }
+    #printReport td{ border-bottom:0.5px solid #ccc; padding:6px 4px; }
+    #printReport img{ width:40px; height:40px; object-fit:cover; border-radius:4px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">V</div>
+      <div>
+        <h1>VIPING — Logistica Lucca Comics</h1>
+        <p>App unica · Coordinatore Operativo di Cantiere</p>
+      </div>
+    </div>
+    <div class="meta">DEPOSITO <b>VIA FILZI</b><br>GIORNATA <b id="todayLabel">giovedì 09 luglio</b></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="consegne">Consegne</button>
+    <button class="tab-btn" data-tab="prova">Prova consegna</button>
+    <button class="tab-btn" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="segnala">Segnalazioni</button>
+    <button class="tab-btn" data-tab="magazzino">Arrivi/Partenze</button>
+    <button class="tab-btn" data-tab="muletti">Fine missione muletto</button>
+    <button class="tab-btn" data-tab="planner">Planner coordinatore</button>
+    <button class="tab-btn" data-tab="turni">Turni &amp; ore</button>
+  </div>
+
+  <!-- TAB 1: CONSEGNE -->
+  <div class="view active" id="view-consegne">
+    <div class="grid">
+      <div class="panel">
+        <h2 class="section-title"><span class="lbl">Richieste di consegna</span></h2>
+        <div id="standList">
+      <div class="stand-row">
+        <input type="checkbox" data-id="1" class="chk" checked="">
+        <div>
+          <div class="stand-name">Fumetteria Orion </div>
+          <input type="text" class="materiale-input" data-id="1" value="Pallet fumetti + espositore" placeholder="Materiale...">
+          <select class="dest-select" data-id="1"><option value="napoleone" selected="">Piazza Napoleone</option><option value="sanmichele">Piazza San Michele</option><option value="anfiteatro">Piazza dell'Anfiteatro</option><option value="baluardo">Baluardo San Paolino</option><option value="santamaria">Piazza Santa Maria</option><option value="casaboia">Casa del Boia</option><option value="carducci">Viale Carducci</option><option value="palazzetto">Palazzetto dello Sport</option><option value="polofiere">Polo Fiere</option></select>
+        </div>
+        <select class="priority" data-id="1">
+          <option value="Alta" selected="">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Bassa">Bassa</option>
+        </select>
+      </div>
+    
+      <div class="stand-row">
+        <input type="checkbox" data-id="2" class="chk" checked="">
+        <div>
+          <div class="stand-name">Cosplay Corner </div>
+          <input type="text" class="materiale-input" data-id="2" value="Casse merchandising" placeholder="Materiale...">
+          <select class="dest-select" data-id="2"><option value="napoleone">Piazza Napoleone</option><option value="sanmichele" selected="">Piazza San Michele</option><option value="anfiteatro">Piazza dell'Anfiteatro</option><option value="baluardo">Baluardo San Paolino</option><option value="santamaria">Piazza Santa Maria</option><option value="casaboia">Casa del Boia</option><option value="carducci">Viale Carducci</option><option value="palazzetto">Palazzetto dello Sport</option><option value="polofiere">Polo Fiere</option></select>
+        </div>
+        <select class="priority" data-id="2">
+          <option value="Alta">Alta</option>
+          <option value="Media" selected="">Media</option>
+          <option value="Bassa">Bassa</option>
+        </select>
+      </div>
+    
+      <div class="stand-row">
+        <input type="checkbox" data-id="3" class="chk" checked="">
+        <div>
+          <div class="stand-name">Manga House </div>
+          <input type="text" class="materiale-input" data-id="3" value="Ristock volumi" placeholder="Materiale...">
+          <select class="dest-select" data-id="3"><option value="napoleone">Piazza Napoleone</option><option value="sanmichele">Piazza San Michele</option><option value="anfiteatro" selected="">Piazza dell'Anfiteatro</option><option value="baluardo">Baluardo San Paolino</option><option value="santamaria">Piazza Santa Maria</option><option value="casaboia">Casa del Boia</option><option value="carducci">Viale Carducci</option><option value="palazzetto">Palazzetto dello Sport</option><option value="polofiere">Polo Fiere</option></select>
+        </div>
+        <select class="priority" data-id="3">
+          <option value="Alta" selected="">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Bassa">Bassa</option>
+        </select>
+      </div>
+    
+      <div class="stand-row">
+        <input type="checkbox" data-id="4" class="chk" checked="">
+        <div>
+          <div class="stand-name">Artist Alley </div>
+          <input type="text" class="materiale-input" data-id="4" value="Materiale stampa" placeholder="Materiale...">
+          <select class="dest-select" data-id="4"><option value="napoleone">Piazza Napoleone</option><option value="sanmichele">Piazza San Michele</option><option value="anfiteatro">Piazza dell'Anfiteatro</option><option value="baluardo" selected="">Baluardo San Paolino</option><option value="santamaria">Piazza Santa Maria</option><option value="casaboia">Casa del Boia</option><option value="carducci">Viale Carducci</option><option value="palazzetto">Palazzetto dello Sport</option><option value="polofiere">Polo Fiere</option></select>
+        </div>
+        <select class="priority" data-id="4">
+          <option value="Alta">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Bassa" selected="">Bassa</option>
+        </select>
+      </div>
+    
+      <div class="stand-row">
+        <input type="checkbox" data-id="5" class="chk" checked="">
+        <div>
+          <div class="stand-name">Merch Ufficiale </div>
+          <input type="text" class="materiale-input" data-id="5" value="Ristock urgente t-shirt" placeholder="Materiale...">
+          <select class="dest-select" data-id="5"><option value="napoleone">Piazza Napoleone</option><option value="sanmichele">Piazza San Michele</option><option value="anfiteatro">Piazza dell'Anfiteatro</option><option value="baluardo">Baluardo San Paolino</option><option value="santamaria" selected="">Piazza Santa Maria</option><option value="casaboia">Casa del Boia</option><option value="carducci">Viale Carducci</option><option value="palazzetto">Palazzetto dello Sport</option><option value="polofiere">Polo Fiere</option></select>
+        </div>
+        <select class="priority" data-id="5">
+          <option value="Alta" selected="">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Bassa">Bassa</option>
+        </select>
+      </div>
+    </div>
+        <div class="add-row">
+          <input type="text" id="newStandNome" placeholder="Nome stand/cliente">
+          <button id="addStandBtn">Aggiungi</button>
+        </div>
+        <button class="primary-btn" id="genBtn">GENERA GIRO OTTIMIZZATO</button>
+        <div class="stats" style="margin-top:14px;">
+          <div class="stat"><div class="num" id="statCount">0</div><div class="lbl2">Fermate</div></div>
+          <div class="stat"><div class="num" id="statDist">0 km</div><div class="lbl2">Percorso</div></div>
+          <div class="stat"><div class="num" id="statTime">0 min</div><div class="lbl2">Tempo</div></div>
+        </div>
+        <button class="print-btn" id="printBtnRoute">STAMPA PROGRAMMA DI OGGI</button>
+      </div>
+      <div class="panel">
+        <h2 class="section-title"><span class="lbl">Mappa — centro storico di Lucca</span></h2>
+        <div id="map1" class="leaflet-container leaflet-touch leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(0px, 0px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 19; transform: translate3d(0px, 0px, 0px) scale(1);"><img alt="" src="./Viping — App Logistica Lucca Comics_files/11934.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(239px, -67px, 0px); opacity: 1;"><img alt="" src="./Viping — App Logistica Lucca Comics_files/11935.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(239px, 189px, 0px); opacity: 1;"><img alt="" src="./Viping — App Logistica Lucca Comics_files/11934(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-17px, -67px, 0px); opacity: 1;"><img alt="" src="./Viping — App Logistica Lucca Comics_files/11934(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(495px, -67px, 0px); opacity: 1;"><img alt="" src="./Viping — App Logistica Lucca Comics_files/11935(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-17px, 189px, 0px); opacity: 1;"><img alt="" src="./Viping — App Logistica Lucca Comics_files/11935(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(495px, 189px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"><div class="leaflet-marker-icon leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -8px; margin-top: -8px; width: 16px; height: 16px; transform: translate3d(486px, 300px, 0px); z-index: 300;"><div style="width:16px;height:16px;background:#4CAF7D;border:2px solid #0F1B2E;border-radius:50%;"></div></div></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(4.4391e+06px, 3.05532e+06px, 0px) scale(16384);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="file:///C:/Users/Utente/Downloads/app_logistica_lucca_comics%20(1).html#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="false"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="file:///C:/Users/Utente/Downloads/app_logistica_lucca_comics%20(1).html#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com/" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a> <span aria-hidden="true">|</span> © OpenStreetMap</div></div></div></div>
+        <div id="routeList" style="margin-top:12px;"><div class="empty-hint">Seleziona le fermate e genera il giro.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: PROVA CONSEGNA -->
+  <div class="view" id="view-prova">
+    <div class="grid">
+      <div class="panel">
+        <h2 class="section-title"><span class="lbl">Registra consegna</span></h2>
+        <label class="field-label">Autista</label>
+        <select id="driver"><option>Marco Bianchi</option><option>Luca Ferretti</option><option>Sara Conti</option></select>
+        <label class="field-label">Stand destinatario</label>
+        <select id="standSelect"><option value="1">Fumetteria Orion</option><option value="2">Cosplay Corner</option><option value="3">Manga House</option><option value="4">Artist Alley</option><option value="5">Merch Ufficiale</option></select>
+        <label class="field-label">Materiale consegnato</label>
+        <input type="text" id="materialeConsegna" placeholder="es. Pallet fumetti + espositore">
+        <label class="field-label">Foto di conferma</label>
+        <input type="file" id="photoInput" accept="image/*" capture="environment">
+        <div class="photo-box" id="photoBox">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9FB0C9" stroke-width="1.6"><path d="M4 7h3l1.5-2h7L17 7h3v12H4z"></path><circle cx="12" cy="13" r="3.3"></circle></svg>
+          <div class="hint">Tocca per scattare o caricare una foto</div>
+        </div>
+        <label class="field-label">Firma ricevente</label>
+        <div class="sig-wrap">
+          <canvas id="sigPad" width="0" height="0"></canvas>
+          <div class="sig-actions"><span>FIRMA SU SCHERMO</span><button class="clear-btn" id="clearSig">Cancella</button></div>
+        </div>
+        <button class="primary-btn green-btn" id="confirmBtn" disabled="">CONFERMA CONSEGNA</button>
+      </div>
+      <div class="panel">
+        <h2 class="section-title"><span class="lbl">Report di oggi</span></h2>
+        <div class="stats">
+          <div class="stat"><div class="num" id="statTotalD">0</div><div class="lbl2">Consegne</div></div>
+          <div class="stat"><div class="num" id="statLastD">—</div><div class="lbl2">Ultima</div></div>
+        </div>
+        <div id="deliveryLog"><div class="empty-hint">Nessuna consegna registrata ancora oggi.</div></div>
+        <button class="print-btn" id="printBtnProva">STAMPA REPORT DI OGGI</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: DASHBOARD -->
+  <div class="view" id="view-dashboard">
+    <div class="kpis">
+      <div class="kpi amber"><div class="num" id="kpiAttesa">5</div><div class="lbl2">In attesa</div></div>
+      <div class="kpi blue"><div class="num" id="kpiCorso">0</div><div class="lbl2">In consegna</div></div>
+      <div class="kpi green"><div class="num" id="kpiFatte">0</div><div class="lbl2">Completate</div></div>
+      <div class="kpi red"><div class="num" id="kpiRitardo">0</div><div class="lbl2">In ritardo</div></div>
+    </div>
+    <div class="panel">
+      <h2 class="section-title"><span class="lbl">Elenco stand</span></h2>
+      <div class="filters" id="dashFilters">
+        <button class="filter-btn active" data-f="Tutte">Tutte</button>
+        <button class="filter-btn" data-f="attesa">In attesa</button>
+        <button class="filter-btn" data-f="corso">In consegna</button>
+        <button class="filter-btn" data-f="completata">Completate</button>
+        <button class="filter-btn" data-f="ritardo">In ritardo</button>
+      </div>
+      <table><thead><tr><th>Stand</th><th>Destinazione</th><th>Stato</th></tr></thead><tbody id="dashTableBody">
+    <tr><td>Fumetteria Orion</td><td>Piazza Napoleone</td><td><span class="badge attesa">In attesa</span></td></tr>
+  
+    <tr><td>Cosplay Corner</td><td>Piazza San Michele</td><td><span class="badge attesa">In attesa</span></td></tr>
+  
+    <tr><td>Manga House</td><td>Piazza dell'Anfiteatro</td><td><span class="badge attesa">In attesa</span></td></tr>
+  
+    <tr><td>Artist Alley</td><td>Baluardo San Paolino</td><td><span class="badge attesa">In attesa</span></td></tr>
+  
+    <tr><td>Merch Ufficiale</td><td>Piazza Santa Maria</td><td><span class="badge attesa">In attesa</span></td></tr>
+  </tbody></table>
+    </div>
+  </div>
+
+  <!-- TAB 4: SEGNALAZIONI -->
+  <div class="view" id="view-segnala">
+    <div class="grid">
+      <div class="panel">
+        <h2 class="section-title"><span class="lbl">Nuova segnalazione</span></h2>
+        <label class="field-label">Numero e nome stand</label>
+        <input type="text" id="segStandName" placeholder="es. Manga House">
+        <div class="row2">
+          <div>
+            <label class="field-label">Destinazione</label>
+            <select id="segDest"><option value="napoleone">Piazza Napoleone</option><option value="sanmichele">Piazza San Michele</option><option value="anfiteatro">Piazza dell'Anfiteatro</option><option value="baluardo">Baluardo San Paolino</option><option value="santamaria">Piazza Santa Maria</option><option value="casaboia">Casa del Boia</option><option value="carducci">Viale Carducci</option><option value="palazzetto">Palazzetto dello Sport</option><option value="polofiere">Polo Fiere</option></select>
+          </div>
+          <div>
+            <label class="field-label">Tipo richiesta</label>
+            <select id="segTipo"><option>Ristock materiale</option><option>Materiale mancante</option><option>Problema struttura</option><option>Altro</option></select>
+          </div>
+        </div>
+        <label class="field-label">Descrizione</label>
+        <textarea id="segDesc" placeholder="Es: &#39;Servono urgentemente altri 3 pallet, siamo quasi esauriti.&#39;"></textarea>
+        <div class="stats" style="margin-top:12px;"><div class="stat"><div class="num" style="font-size:15px;"><span class="badge Media" id="segPrioBadge">Media</span></div><div class="lbl2">Priorità rilevata</div></div></div>
+        <button class="primary-btn" id="segSendBtn">INVIA SEGNALAZIONE</button>
+      </div>
+      <div class="panel">
+        <h2 class="section-title"><span class="lbl">Coda segnalazioni</span></h2>
+        <div class="stats">
+          <div class="stat"><div class="num" id="segStatTotal">0</div><div class="lbl2">Oggi</div></div>
+          <div class="stat"><div class="num" id="segStatAlta">0</div><div class="lbl2">Priorità alta</div></div>
+        </div>
+        <div id="segQueue"><div class="empty-hint">Nessuna segnalazione ricevuta ancora.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: ARRIVI/PARTENZE -->
+  <div class="view" id="view-magazzino">
+    <div class="mode-toggle">
+      <div class="mode-btn arrivi active" id="btnArrivi">↓ ARRIVI</div>
+      <div class="mode-btn partenze" id="btnPartenze">↑ PARTENZE</div>
+    </div>
+    <div class="grid">
+      <div class="panel">
+        <h2 class="section-title" id="magFormTitle"><span class="lbl">Registra arrivo</span></h2>
+        <div class="type-toggle">
+          <div class="type-btn active" id="btnStandardMag">Consegna Standard</div>
+          <div class="type-btn" id="btnCorriereMag">Corriere</div>
+        </div>
+        <div id="fieldsStandardMag">
+          <label class="field-label">Mezzo (ns. mezzi)</label>
+          <select id="mezzoSelectMag"><option>Muletto 1</option><option>Muletto 2</option><option>Muletto 3</option><option>Furgone 1</option></select>
+          <label class="field-label">Autista/Operatore</label>
+          <select id="autistaSelectMag"><option>Marco Bianchi</option><option>Luca Ferretti</option><option>Sara Conti</option></select>
+        </div>
+        <div id="fieldsCorriereMag" style="display:none;">
+          <label class="field-label">Corriere</label>
+          <select id="corriereSelectMag"><option>BRT</option><option>GLS</option><option>DHL</option><option>SDA</option><option>UPS</option><option>Altro</option></select>
+          <label class="field-label">Numero tracking / DDT</label>
+          <input type="text" id="trackingInputMag" placeholder="es. 1Z999AA10123456784">
+        </div>
+        <label class="field-label">Cliente / Mittente-Destinatario</label>
+        <input type="text" id="clienteInputMag" placeholder="es. Manga House">
+        <label class="field-label">Materiale / Descrizione</label>
+        <input type="text" id="materialeInputMag" placeholder="es. Pallet fumetti">
+        <label class="field-label">Note</label>
+        <input type="text" id="noteInputMag" placeholder="Note opzionali...">
+        <button class="primary-btn" id="registraBtnMag">REGISTRA</button>
+        <button class="print-btn" id="printBtnMag">STAMPA REGISTRO DI OGGI</button>
+      </div>
+      <div class="panel">
+        <h2 class="section-title"><span class="lbl">Registro di oggi</span></h2>
+        <div class="stats">
+          <div class="stat"><div class="num" id="statArriviMag">0</div><div class="lbl2">Arrivi</div></div>
+          <div class="stat"><div class="num" id="statPartenzeMag">0</div><div class="lbl2">Partenze</div></div>
+          <div class="stat"><div class="num" id="statCorriereMag">0</div><div class="lbl2">Corriere</div></div>
+        </div>
+        <div class="filters" id="magLogFilters">
+          <button class="filter-btn active" data-f="Tutti">Tutti</button>
+          <button class="filter-btn" data-f="Arrivo">Arrivi</button>
+          <button class="filter-btn" data-f="Partenza">Partenze</button>
+          <button class="filter-btn" data-f="Standard">Standard</button>
+          <button class="filter-btn" data-f="Corriere">Corriere</button>
+        </div>
+        <table><thead><tr><th>Movimento</th><th>Tipo</th><th>Mezzo/Corriere</th><th>Cliente</th><th>Orario</th></tr></thead><tbody id="magLogBody"><tr><td colspan="5" class="empty-hint">Nessun movimento registrato ancora oggi.</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 6: FINE MISSIONE MULETTO -->
+  <div class="view" id="view-muletti">
+    <div class="grid">
+      <div>
+        <div class="panel">
+          <h2 class="section-title"><span class="lbl">Registra fine missione</span></h2>
+          <label class="field-label">Muletto / Mezzo</label>
+          <select id="muMuletto"><option>Muletto 1</option><option>Muletto 2</option><option>Muletto 3</option><option>Furgone 1</option></select>
+          <label class="field-label">Operatore</label>
+          <select id="muOperatore"><option>Marco Bianchi</option><option>Luca Ferretti</option><option>Sara Conti</option></select>
+          <label class="field-label">Dove lasci il mezzo</label>
+          <select id="muLocation"><option value="napoleone">Piazza Napoleone</option><option value="sanmichele">Piazza San Michele</option><option value="anfiteatro">Piazza dell'Anfiteatro</option><option value="baluardo">Baluardo San Paolino</option><option value="santamaria">Piazza Santa Maria</option><option value="casaboia">Casa del Boia</option><option value="carducci">Viale Carducci</option><option value="palazzetto">Palazzetto dello Sport</option><option value="polofiere">Polo Fiere</option><option value="deposito">Via Filzi (deposito)</option></select>
+          <label class="field-label">Dove sono le chiavi</label>
+          <div class="chip-row" id="chiaviChips">
+            <div class="chip selected" data-v="Nel quadro del mezzo">Nel quadro</div>
+            <div class="chip" data-v="Con l&#39;operatore">Con l'operatore</div>
+            <div class="chip" data-v="Consegnate in ufficio/deposito">In ufficio/deposito</div>
+            <div class="chip" data-v="Altro">Altro</div>
+          </div>
+          <input type="text" id="chiaviAltro" placeholder="Specifica se &#39;Altro&#39;..." style="margin-top:8px; display:none;">
+          <label class="field-label">Condizioni del mezzo</label>
+          <div class="toggle-row">
+            <div class="toggle-btn ok selected" id="btnMuOk">Nessun problema</div>
+            <div class="toggle-btn problem" id="btnMuProblem">Segnala un problema</div>
+          </div>
+          <textarea id="muProblemDesc" placeholder="Descrivi il problema..." style="margin-top:8px; display:none;"></textarea>
+          <button class="primary-btn" id="muSubmitBtn">REGISTRA FINE MISSIONE</button>
+          <button class="print-btn" id="muPrintBtn">STAMPA RESOCONTO DI OGGI</button>
+        </div>
+      </div>
+      <div>
+        <div class="panel">
+          <h2 class="section-title"><span class="lbl">Mappa mezzi lasciati</span></h2>
+          <div id="map2" class="leaflet-container leaflet-touch leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(0px, 0px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 19; transform: translate3d(0px, 0px, 0px) scale(1);"><img alt="" src="./Viping — App Logistica Lucca Comics_files/11934.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-65px, -216px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(4.4391e+06px, 3.05532e+06px, 0px) scale(16384);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="file:///C:/Users/Utente/Downloads/app_logistica_lucca_comics%20(1).html#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="false"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="file:///C:/Users/Utente/Downloads/app_logistica_lucca_comics%20(1).html#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com/" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a> <span aria-hidden="true">|</span> © OpenStreetMap</div></div></div></div>
+        </div>
+        <div class="panel">
+          <h2 class="section-title"><span class="lbl">Verbali registrati oggi</span></h2>
+          <div class="stats">
+            <div class="stat"><div class="num" id="muStatTotal">0</div><div class="lbl2">Consegne mezzo</div></div>
+            <div class="stat red"><div class="num" id="muStatProblemi">0</div><div class="lbl2">Con problemi</div></div>
+          </div>
+          <div id="muLog"><div class="empty-hint">Nessun verbale registrato ancora oggi.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 7: PLANNER COORDINATORE -->
+  <div class="view" id="view-planner">
+    <div class="kpis">
+      <div class="kpi"><div class="num" id="kpiTotalePers">3</div><div class="lbl2">Personale totale</div></div>
+      <div class="kpi"><div class="num" id="kpiCarr">2</div><div class="lbl2">Carrellisti</div></div>
+      <div class="kpi"><div class="num" id="kpiFacc">0</div><div class="lbl2">Facchini</div></div>
+      <div class="kpi"><div class="num" id="kpiAuti">1</div><div class="lbl2">Autisti</div></div>
+    </div>
+    <div class="panel">
+      <h2 class="section-title"><span class="lbl">Personale in turno oggi</span></h2>
+      <div class="filters" id="roleFilters">
+        <button class="filter-btn active" data-r="Tutti">Tutti</button>
+        <button class="filter-btn" data-r="Carrellista">Carrellisti</button>
+        <button class="filter-btn" data-r="Facchino">Facchini</button>
+        <button class="filter-btn" data-r="Magazziniere">Magazzinieri</button>
+        <button class="filter-btn" data-r="Autista">Autisti</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table><thead><tr><th>Ruolo</th><th>Nome</th><th>Turno</th><th>Assegnazione</th><th>Posizione</th><th>Note</th><th></th></tr></thead><tbody id="rosterBody">
+        <tr>
+          <td><span class="role-badge Carrellista">Carrellista</span></td>
+          <td style="font-family:&#39;Space Grotesk&#39;; font-weight:600;">Marco Bianchi</td>
+          <td><select class="turno-select" data-id="1"><option value="Mattina 08-14" selected="">Mattina 08-14</option><option value="Pomeriggio 14-20">Pomeriggio 14-20</option><option value="Giornata 08-20">Giornata 08-20</option></select></td>
+          <td><input type="text" class="assign-input" data-id="1" value="Muletto 1" placeholder="Muletto 1, Magazzino A..."></td>
+          <td><select class="pos-select" data-id="1"><option value="">—</option><option value="Piazza Napoleone" selected="">Piazza Napoleone</option><option value="Piazza San Michele">Piazza San Michele</option><option value="Piazza dell&#39;Anfiteatro">Piazza dell'Anfiteatro</option><option value="Baluardo San Paolino">Baluardo San Paolino</option><option value="Piazza Santa Maria">Piazza Santa Maria</option><option value="Casa del Boia">Casa del Boia</option><option value="Viale Carducci">Viale Carducci</option><option value="Palazzetto dello Sport">Palazzetto dello Sport</option><option value="Polo Fiere">Polo Fiere</option><option value="Via Filzi (deposito)">Via Filzi (deposito)</option></select></td>
+          <td><input type="text" class="nota-input-pers" data-id="1" value="" placeholder="Nota..."></td>
+          <td><button class="remove-btn" data-id="1">Rimuovi</button></td>
+        </tr>
+        <tr>
+          <td><span class="role-badge Carrellista">Carrellista</span></td>
+          <td style="font-family:&#39;Space Grotesk&#39;; font-weight:600;">Luca Ferretti</td>
+          <td><select class="turno-select" data-id="2"><option value="Mattina 08-14">Mattina 08-14</option><option value="Pomeriggio 14-20" selected="">Pomeriggio 14-20</option><option value="Giornata 08-20">Giornata 08-20</option></select></td>
+          <td><input type="text" class="assign-input" data-id="2" value="Muletto 2" placeholder="Muletto 1, Magazzino A..."></td>
+          <td><select class="pos-select" data-id="2"><option value="">—</option><option value="Piazza Napoleone">Piazza Napoleone</option><option value="Piazza San Michele">Piazza San Michele</option><option value="Piazza dell&#39;Anfiteatro" selected="">Piazza dell'Anfiteatro</option><option value="Baluardo San Paolino">Baluardo San Paolino</option><option value="Piazza Santa Maria">Piazza Santa Maria</option><option value="Casa del Boia">Casa del Boia</option><option value="Viale Carducci">Viale Carducci</option><option value="Palazzetto dello Sport">Palazzetto dello Sport</option><option value="Polo Fiere">Polo Fiere</option><option value="Via Filzi (deposito)">Via Filzi (deposito)</option></select></td>
+          <td><input type="text" class="nota-input-pers" data-id="2" value="" placeholder="Nota..."></td>
+          <td><button class="remove-btn" data-id="2">Rimuovi</button></td>
+        </tr>
+        <tr>
+          <td><span class="role-badge Autista">Autista</span></td>
+          <td style="font-family:&#39;Space Grotesk&#39;; font-weight:600;">Sara Conti</td>
+          <td><select class="turno-select" data-id="3"><option value="Mattina 08-14">Mattina 08-14</option><option value="Pomeriggio 14-20">Pomeriggio 14-20</option><option value="Giornata 08-20" selected="">Giornata 08-20</option></select></td>
+          <td><input type="text" class="assign-input" data-id="3" value="Furgone 1" placeholder="Muletto 1, Magazzino A..."></td>
+          <td><select class="pos-select" data-id="3"><option value="">—</option><option value="Piazza Napoleone">Piazza Napoleone</option><option value="Piazza San Michele">Piazza San Michele</option><option value="Piazza dell&#39;Anfiteatro">Piazza dell'Anfiteatro</option><option value="Baluardo San Paolino">Baluardo San Paolino</option><option value="Piazza Santa Maria">Piazza Santa Maria</option><option value="Casa del Boia">Casa del Boia</option><option value="Viale Carducci">Viale Carducci</option><option value="Palazzetto dello Sport">Palazzetto dello Sport</option><option value="Polo Fiere">Polo Fiere</option><option value="Via Filzi (deposito)" selected="">Via Filzi (deposito)</option></select></td>
+          <td><input type="text" class="nota-input-pers" data-id="3" value="" placeholder="Nota..."></td>
+          <td><button class="remove-btn" data-id="3">Rimuovi</button></td>
+        </tr></tbody></table>
+      </div>
+      <div class="add-row">
+        <input type="text" id="newNomePers" placeholder="Nome persona">
+        <select id="newRuoloPers"><option>Carrellista</option><option>Facchino</option><option>Magazziniere</option><option>Autista</option></select>
+        <button id="addPersonaBtn">Aggiungi</button>
+      </div>
+      <button class="print-btn" id="printBtnPlanner">STAMPA PLANNER DI OGGI</button>
+    </div>
+  </div>
+
+  <!-- TAB 8: TURNI & ORE -->
+  <div class="view" id="view-turni">
+    <div class="stats">
+      <div class="stat"><div class="num" id="statAttiviTurni">0</div><div class="lbl2">Attivi ora</div></div>
+      <div class="stat"><div class="num" id="statOreOggiTurni">0h 0m</div><div class="lbl2">Ore totali oggi</div></div>
+    </div>
+    <div class="panel">
+      <h2 class="section-title"><span class="lbl">Timbra entrata / uscita</span></h2>
+      <div class="clock-grid" id="clockGrid">
+      <div class="clock-card">
+        <div class="name">Marco Bianchi</div>
+        <div class="status libero">FUORI TURNO</div>
+        <div class="timer" data-timer="Marco Bianchi">0h 0m</div>
+        <button class="clock-btn entra" data-name="Marco Bianchi">INIZIA TURNO</button>
+      </div>
+      <div class="clock-card">
+        <div class="name">Luca Ferretti</div>
+        <div class="status libero">FUORI TURNO</div>
+        <div class="timer" data-timer="Luca Ferretti">0h 0m</div>
+        <button class="clock-btn entra" data-name="Luca Ferretti">INIZIA TURNO</button>
+      </div>
+      <div class="clock-card">
+        <div class="name">Sara Conti</div>
+        <div class="status libero">FUORI TURNO</div>
+        <div class="timer" data-timer="Sara Conti">0h 0m</div>
+        <button class="clock-btn entra" data-name="Sara Conti">INIZIA TURNO</button>
+      </div></div>
+      <div class="add-row">
+        <input type="text" id="newEmpName" placeholder="Nome nuovo operatore">
+        <button id="addEmpBtn">Aggiungi</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 class="section-title"><span class="lbl">Registro timbrature di oggi</span></h2>
+      <table><thead><tr><th>Operatore</th><th>Entrata</th><th>Uscita</th><th>Ore</th></tr></thead><tbody id="turniLogBody"><tr><td colspan="4" class="empty-hint">Nessuna timbratura registrata oggi.</td></tr></tbody></table>
+    </div>
+  </div>
+
+</div>
+
+<div id="printReport">
+  <h1 id="printTitle">Viping — Report</h1>
+  <div class="sub" id="printDate"></div>
+  <div id="printBody2"></div>
+</div>
+
+<script src="./Viping — App Logistica Lucca Comics_files/leaflet.min.js.download"></script>
+<script>
+// ============ DATI CONDIVISI ============
+const DEPOT = { name:"Deposito — Via Filzi", lat:43.839028, lng:10.513550 };
+const locations = [
+  { key:"napoleone",  name:"Piazza Napoleone",       lat:43.841312, lng:10.502475 },
+  { key:"sanmichele", name:"Piazza San Michele",     lat:43.843091, lng:10.503151 },
+  { key:"anfiteatro", name:"Piazza dell'Anfiteatro", lat:43.845333, lng:10.506179 },
+  { key:"baluardo",   name:"Baluardo San Paolino",   lat:43.840238, lng:10.496651 },
+  { key:"santamaria", name:"Piazza Santa Maria",     lat:43.847878, lng:10.507769 },
+  { key:"casaboia",   name:"Casa del Boia",          lat:43.845027, lng:10.514944 },
+  { key:"carducci",   name:"Viale Carducci",         lat:43.839086, lng:10.497121 },
+  { key:"palazzetto", name:"Palazzetto dello Sport", lat:43.849502, lng:10.498553 },
+  { key:"polofiere",  name:"Polo Fiere",             lat:43.828005, lng:10.503843 },
+  { key:"deposito",   name:"Via Filzi (deposito)",   lat:43.839028, lng:10.513550 },
+];
+function locByKey(key){ return locations.find(l=>l.key===key) || DEPOT; }
+function nowTime(){ return new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}); }
+function todayFull(){ return new Date().toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }); }
+function haversine(a, b){
+  const R = 6371;
+  const dLat = (b.lat-a.lat) * Math.PI/180, dLng = (b.lng-a.lng) * Math.PI/180;
+  const lat1 = a.lat * Math.PI/180, lat2 = b.lat * Math.PI/180;
+  const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+}
+
+document.getElementById('todayLabel').textContent =
+  new Date().toLocaleDateString('it-IT', { weekday:'long', day:'2-digit', month:'long' });
+
+// stands condivisi tra Consegne / Prova Consegna / Dashboard / Segnalazioni
+let stands = [
+  { id:1, nome:"Fumetteria Orion", destKey:"napoleone",  priorita:"Alta",  materiale:"Pallet fumetti + espositore", status:"attesa" },
+  { id:2, nome:"Cosplay Corner",   destKey:"sanmichele", priorita:"Media", materiale:"Casse merchandising",         status:"attesa" },
+  { id:3, nome:"Manga House",      destKey:"anfiteatro", priorita:"Alta",  materiale:"Ristock volumi",              status:"attesa" },
+  { id:4, nome:"Artist Alley",     destKey:"baluardo",   priorita:"Bassa", materiale:"Materiale stampa",            status:"attesa" },
+  { id:5, nome:"Merch Ufficiale",  destKey:"santamaria", priorita:"Alta",  materiale:"Ristock urgente t-shirt",     status:"attesa" },
+];
+let nextStandId = 6;
+let deliveries = [];
+let segnalazioni = [];
+let registroMag = [];
+let muHandovers = [];
+let personale = [
+  { id:1, nome:"Marco Bianchi", ruolo:"Carrellista", turno:"Mattina 08-14", assegnazione:"Muletto 1", posizione:"Piazza Napoleone", nota:"" },
+  { id:2, nome:"Luca Ferretti",  ruolo:"Carrellista", turno:"Pomeriggio 14-20", assegnazione:"Muletto 2", posizione:"Piazza dell'Anfiteatro", nota:"" },
+  { id:3, nome:"Sara Conti",     ruolo:"Autista",     turno:"Giornata 08-20", assegnazione:"Furgone 1", posizione:"Via Filzi (deposito)", nota:"" },
+];
+let nextPersId = 4;
+let employees = ["Marco Bianchi", "Luca Ferretti", "Sara Conti"];
+let clockState = {};
+let turniLogs = [];
+employees.forEach(e => clockState[e] = { in:null, todaySeconds:0 });
+
+// ============ TABS ============
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'consegne' && map1) setTimeout(()=>map1.invalidateSize(), 100);
+    if(btn.dataset.tab === 'muletti' && map2) setTimeout(()=>map2.invalidateSize(), 100);
+  });
+});
+
+// ============ TAB 1: CONSEGNE ============
+let map1, routeLayer1, markersLayer1;
+function initMap1(){
+  map1 = L.map('map1').setView([43.8437, 10.5057], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:19 }).addTo(map1);
+  L.marker([DEPOT.lat, DEPOT.lng], { icon: L.divIcon({ className:'', html:'<div style="width:16px;height:16px;background:#4CAF7D;border:2px solid #0F1B2E;border-radius:50%;"></div>', iconSize:[16,16], iconAnchor:[8,8] }) })
+    .addTo(map1).bindPopup('<b>Deposito</b><br>Via Filzi');
+  markersLayer1 = L.layerGroup().addTo(map1);
+  routeLayer1 = L.layerGroup().addTo(map1);
+}
+
+function renderStandList(){
+  const el = document.getElementById('standList');
+  el.innerHTML = stands.map(s=>{
+    const disabled = s.status === 'completata';
+    const destOptions = locations.filter(l=>l.key!=='deposito').map(l => `<option value="${l.key}" ${l.key===s.destKey?'selected':''}>${l.name}</option>`).join('');
+    return `
+      <div class="stand-row">
+        <input type="checkbox" data-id="${s.id}" class="chk" ${disabled?'':'checked'} ${disabled?'disabled':''}>
+        <div>
+          <div class="stand-name">${s.nome} ${disabled?'<span class=\"badge completata\">Completata</span>':''}</div>
+          <input type="text" class="materiale-input" data-id="${s.id}" value="${s.materiale}" placeholder="Materiale..." ${disabled?'disabled':''}>
+          <select class="dest-select" data-id="${s.id}" ${disabled?'disabled':''}>${destOptions}</select>
+        </div>
+        <select class="priority" data-id="${s.id}" ${disabled?'disabled':''}>
+          <option value="Alta" ${s.priorita==='Alta'?'selected':''}>Alta</option>
+          <option value="Media" ${s.priorita==='Media'?'selected':''}>Media</option>
+          <option value="Bassa" ${s.priorita==='Bassa'?'selected':''}>Bassa</option>
+        </select>
+      </div>
+    `;
+  }).join('');
+  el.querySelectorAll('.priority').forEach(sel=> sel.addEventListener('change', e=>{ stands.find(s=>s.id===parseInt(e.target.dataset.id)).priorita = e.target.value; }));
+  el.querySelectorAll('.dest-select').forEach(sel=> sel.addEventListener('change', e=>{ stands.find(s=>s.id===parseInt(e.target.dataset.id)).destKey = e.target.value; }));
+  el.querySelectorAll('.materiale-input').forEach(inp=> inp.addEventListener('input', e=>{ stands.find(s=>s.id===parseInt(e.target.dataset.id)).materiale = e.target.value; }));
+}
+
+document.getElementById('addStandBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('newStandNome');
+  const nome = input.value.trim();
+  if(!nome) return;
+  stands.push({ id: nextStandId++, nome, destKey: locations[0].key, priorita:"Media", materiale:"", status:"attesa" });
+  input.value = '';
+  renderStandList();
+  renderAll();
+});
+
+function computeRoute(selected){
+  const tiers = { "Alta":[], "Media":[], "Bassa":[] };
+  selected.forEach(s=>tiers[s.priorita].push(s));
+  let current = DEPOT;
+  let route = [];
+  ["Alta","Media","Bassa"].forEach(tier=>{
+    let pool = tiers[tier].slice();
+    while(pool.length){
+      pool.sort((a,b)=> haversine(current, locByKey(a.destKey)) - haversine(current, locByKey(b.destKey)));
+      const next = pool.shift();
+      route.push(next);
+      current = locByKey(next.destKey);
+    }
+  });
+  return route;
+}
+
+function drawRoute(route){
+  markersLayer1.clearLayers();
+  routeLayer1.clearLayers();
+  const pts = [DEPOT, ...route.map(s=>locByKey(s.destKey))];
+  if(route.length){
+    L.polyline(pts.map(p=>[p.lat,p.lng]), { color:'#F2A93B', weight:3, dashArray:'6 6' }).addTo(routeLayer1);
+  }
+  route.forEach((s,i)=>{
+    const loc = locByKey(s.destKey);
+    const icon = L.divIcon({ className:'', html:`<div style="width:22px;height:22px;background:#F2A93B;border:2px solid #0F1B2E;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono';font-weight:700;font-size:10px;color:#1a1206;">${i+1}</div>`, iconSize:[22,22], iconAnchor:[11,11] });
+    L.marker([loc.lat, loc.lng], { icon }).addTo(markersLayer1).bindPopup(`<b>${i+1}. ${s.nome}</b><br>${loc.name}<br>Priorità ${s.priorita}`);
+  });
+  if(pts.length > 1) map1.fitBounds(pts.map(p=>[p.lat,p.lng]), { padding:[30,30] });
+}
+
+let lastRoute = [];
+function generateRoute(){
+  const checked = Array.from(document.querySelectorAll('.chk')).filter(c=>c.checked && !c.disabled).map(c=>parseInt(c.dataset.id));
+  const selected = stands.filter(s=>checked.includes(s.id));
+  const route = computeRoute(selected);
+  lastRoute = route;
+
+  let totalDist = 0, current = DEPOT;
+  route.forEach(s=>{ const loc = locByKey(s.destKey); totalDist += haversine(current, loc); current = loc; });
+  const totalTimeMin = Math.round(totalDist / 12 * 60 + route.length * 6);
+
+  document.getElementById('statCount').textContent = route.length;
+  document.getElementById('statDist').textContent = totalDist.toFixed(1) + ' km';
+  document.getElementById('statTime').textContent = totalTimeMin + ' min';
+
+  const t = nowTime();
+  route.forEach(s=>{ if(s.status === 'attesa'){ s.status = 'corso'; s.oraGenerazione = t; } });
+
+  drawRoute(route);
+  const el = document.getElementById('routeList');
+  el.innerHTML = route.length ? route.map((s,i)=>{
+    const loc = locByKey(s.destKey);
+    return `<div class="route-item"><div class="seq-badge">${i+1}</div><div><div class="stand-name">${s.nome} — ${loc.name}</div><div style="font-size:11px;color:var(--ink-dim);">Priorità ${s.priorita} · ${s.materiale}</div></div></div>`;
+  }).join('') : '<div class="empty-hint">Nessuna fermata selezionata.</div>';
+
+  renderAll();
+}
+document.getElementById('genBtn').addEventListener('click', generateRoute);
+
+document.getElementById('printBtnRoute').addEventListener('click', ()=>{
+  document.getElementById('printTitle').textContent = 'Viping — Programma consegne';
+  document.getElementById('printDate').textContent = todayFull();
+  const route = lastRoute.length ? lastRoute : stands;
+  const rows = route.map((s,i)=>{ const loc = locByKey(s.destKey); return `<tr><td>${i+1}</td><td>${s.nome}</td><td>${loc.name}</td><td>${s.priorita}</td><td>${s.materiale}</td></tr>`; }).join('') || '<tr><td colspan="5">Nessuna consegna in programma.</td></tr>';
+  document.getElementById('printBody2').innerHTML = `<table><thead><tr><th>#</th><th>Stand</th><th>Destinazione</th><th>Priorità</th><th>Materiale</th></tr></thead><tbody>${rows}</tbody></table>`;
+  window.print();
+});
+
+// ============ TAB 2: PROVA CONSEGNA ============
+function populateStandSelect(){
+  const sel = document.getElementById('standSelect');
+  const prev = sel.value;
+  sel.innerHTML = stands.filter(s=>s.status!=='completata').map(s=>`<option value="${s.id}">${s.nome}</option>`).join('') || '<option value="">Nessuno stand in attesa</option>';
+  sel.value = prev || (sel.options[0] && sel.options[0].value);
+}
+document.getElementById('standSelect').addEventListener('change', e=>{
+  const s = stands.find(s=>s.id===parseInt(e.target.value));
+  if(s) document.getElementById('materialeConsegna').value = s.materiale;
+});
+
+let photoDataUrl = null, hasSignature = false;
+const photoInput = document.getElementById('photoInput');
+const photoBox = document.getElementById('photoBox');
+photoBox.addEventListener('click', ()=> photoInput.click());
+photoInput.addEventListener('change', (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{ photoDataUrl = ev.target.result; photoBox.innerHTML = `<img class="photo-preview" src="${photoDataUrl}">`; checkReady(); };
+  reader.readAsDataURL(file);
+});
+
+const canvas = document.getElementById('sigPad');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){ const r = canvas.getBoundingClientRect(); canvas.width = r.width*devicePixelRatio; canvas.height = r.height*devicePixelRatio; ctx.scale(devicePixelRatio, devicePixelRatio); ctx.strokeStyle='#F2A93B'; ctx.lineWidth=2.2; ctx.lineCap='round'; }
+resizeCanvas();
+let drawing = false;
+function getPos(e){ const r = canvas.getBoundingClientRect(); const cx = e.touches?e.touches[0].clientX:e.clientX; const cy = e.touches?e.touches[0].clientY:e.clientY; return {x:cx-r.left,y:cy-r.top}; }
+function start(e){ drawing=true; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); e.preventDefault(); }
+function move(e){ if(!drawing) return; const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasSignature=true; checkReady(); e.preventDefault(); }
+function end(){ drawing=false; }
+canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move); canvas.addEventListener('touchend', end);
+document.getElementById('clearSig').addEventListener('click', ()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); hasSignature=false; checkReady(); });
+
+const confirmBtn = document.getElementById('confirmBtn');
+function checkReady(){ confirmBtn.disabled = !(photoDataUrl && hasSignature); }
+
+confirmBtn.addEventListener('click', ()=>{
+  const standId = parseInt(document.getElementById('standSelect').value);
+  const s = stands.find(x=>x.id===standId);
+  if(!s) return;
+  const t = nowTime();
+  const materiale = document.getElementById('materialeConsegna').value || s.materiale;
+  const driver = document.getElementById('driver').value;
+  deliveries.unshift({ stand:s.nome, materiale, driver, time:t, photo:photoDataUrl });
+  s.status = 'completata';
+  s.oraConsegna = t;
+  renderDeliveryLog();
+  photoDataUrl = null; hasSignature = false;
+  document.getElementById('materialeConsegna').value = '';
+  photoBox.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9FB0C9" stroke-width="1.6"><path d="M4 7h3l1.5-2h7L17 7h3v12H4z"/><circle cx="12" cy="13" r="3.3"/></svg><div class="hint">Tocca per scattare o caricare una foto</div>`;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  checkReady();
+  renderAll();
+});
+
+function renderDeliveryLog(){
+  const el = document.getElementById('deliveryLog');
+  document.getElementById('statTotalD').textContent = deliveries.length;
+  document.getElementById('statLastD').textContent = deliveries.length ? deliveries[0].time : '—';
+  el.innerHTML = deliveries.length ? deliveries.map(d => `
+    <div class="log-item"><img class="log-thumb" src="${d.photo}"><div><div class="stand-name">${d.stand}</div><div style="font-size:11px;color:var(--ink-dim);">${d.materiale} · ${d.driver}</div></div><div style="font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--green);">${d.time}</div></div>
+  `).join('') : '<div class="empty-hint">Nessuna consegna registrata ancora oggi.</div>';
+}
+
+document.getElementById('printBtnProva').addEventListener('click', ()=>{
+  document.getElementById('printTitle').textContent = 'Viping — Report prove di consegna';
+  document.getElementById('printDate').textContent = todayFull();
+  const rows = deliveries.map(d=>`<tr><td><img src="${d.photo}"></td><td>${d.stand}</td><td>${d.materiale}</td><td>${d.driver}</td><td>${d.time}</td></tr>`).join('') || '<tr><td colspan="5">Nessuna consegna registrata oggi.</td></tr>';
+  document.getElementById('printBody2').innerHTML = `<table><thead><tr><th>Foto</th><th>Stand</th><th>Materiale</th><th>Autista</th><th>Orario</th></tr></thead><tbody>${rows}</tbody></table>`;
+  window.print();
+});
+
+// ============ TAB 3: DASHBOARD ============
+let dashFilter = 'Tutte';
+document.getElementById('dashFilters').addEventListener('click', e=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('#dashFilters .filter-btn').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  dashFilter = e.target.dataset.f;
+  renderDashboard();
+});
+const statoLabel = { attesa:"In attesa", corso:"In consegna", completata:"Completata", ritardo:"In ritardo" };
+function computeRitardo(){
+  const now = Date.now();
+  stands.forEach(s=>{
+    if(s.status === 'corso' && s.oraGenerazione){
+      const [hh,mm] = s.oraGenerazione.split(':').map(Number);
+      const genDate = new Date(); genDate.setHours(hh,mm,0,0);
+      if((now - genDate.getTime()) > 4*60*1000) s.status = 'ritardo';
+    }
+  });
+}
+function renderDashboard(){
+  computeRitardo();
+  document.getElementById('kpiAttesa').textContent = stands.filter(s=>s.status==='attesa').length;
+  document.getElementById('kpiCorso').textContent = stands.filter(s=>s.status==='corso').length;
+  document.getElementById('kpiFatte').textContent = stands.filter(s=>s.status==='completata').length;
+  document.getElementById('kpiRitardo').textContent = stands.filter(s=>s.status==='ritardo').length;
+  const filtered = dashFilter === 'Tutte' ? stands : stands.filter(s=>s.status===dashFilter);
+  document.getElementById('dashTableBody').innerHTML = filtered.length ? filtered.map(s=>`
+    <tr><td>${s.nome}</td><td>${locByKey(s.destKey).name}</td><td><span class="badge ${s.status}">${statoLabel[s.status]}</span></td></tr>
+  `).join('') : '<tr><td colspan="3" class="empty-hint">Nessuno stand in questo stato.</td></tr>';
+}
+
+// ============ TAB 4: SEGNALAZIONI ============
+function populateSegDest(){
+  document.getElementById('segDest').innerHTML = locations.filter(l=>l.key!=='deposito').map(l=>`<option value="${l.key}">${l.name}</option>`).join('');
+}
+const urgentWords = ["urgente","urgenti","subito","esaurit","mancano","emergenza","al più presto","adesso"];
+const lowWords = ["quando possibile","con calma","non urgente","nessuna fretta"];
+function detectPriority(text){
+  const t = text.toLowerCase();
+  if(lowWords.some(w=>t.includes(w))) return "Bassa";
+  if(urgentWords.some(w=>t.includes(w))) return "Alta";
+  return "Media";
+}
+const segDesc = document.getElementById('segDesc');
+segDesc.addEventListener('input', ()=>{
+  const p = detectPriority(segDesc.value);
+  document.getElementById('segPrioBadge').textContent = p;
+  document.getElementById('segPrioBadge').className = 'badge ' + p;
+});
+document.getElementById('segSendBtn').addEventListener('click', ()=>{
+  const standName = document.getElementById('segStandName').value.trim() || 'Stand senza nome';
+  const destKey = document.getElementById('segDest').value;
+  const tipo = document.getElementById('segTipo').value;
+  const desc = segDesc.value.trim() || 'Nessuna descrizione fornita.';
+  const priorita = detectPriority(desc);
+  const t = nowTime();
+
+  segnalazioni.unshift({ standName, destKey, tipo, desc, priorita, time:t });
+
+  let existing = stands.find(s => s.nome.toLowerCase() === standName.toLowerCase());
+  if(existing){
+    existing.priorita = priorita; existing.materiale = tipo + ': ' + desc; existing.status = 'attesa'; existing.oraGenerazione = null;
+  } else {
+    stands.push({ id: nextStandId++, nome: standName, destKey, priorita, materiale: tipo + ': ' + desc, status:'attesa' });
+  }
+
+  renderSegQueue();
+  document.getElementById('segStandName').value = ''; segDesc.value = '';
+  document.getElementById('segPrioBadge').textContent = 'Media'; document.getElementById('segPrioBadge').className = 'badge Media';
+  renderAll();
+});
+function renderSegQueue(){
+  document.getElementById('segStatTotal').textContent = segnalazioni.length;
+  document.getElementById('segStatAlta').textContent = segnalazioni.filter(q=>q.priorita==='Alta').length;
+  document.getElementById('segQueue').innerHTML = segnalazioni.length ? segnalazioni.map(q => `
+    <div class="log-item" style="grid-template-columns:1fr auto;">
+      <div><div class="stand-name">${q.standName} <span style="color:var(--ink-dim); font-weight:400; font-size:11px;">· ${locByKey(q.destKey).name}</span></div>
+      <div style="font-size:11px; color:var(--ink-dim); margin-top:3px;"><b style="color:var(--ink);">${q.tipo}:</b> ${q.desc}</div></div>
+      <span class="badge ${q.priorita}">${q.priorita}</span>
+    </div>
+  `).join('') : '<div class="empty-hint">Nessuna segnalazione ricevuta ancora.</div>';
+}
+
+// ============ TAB 5: ARRIVI/PARTENZE ============
+let magMode = "Arrivo", magTipo = "Standard";
+document.getElementById('btnArrivi').addEventListener('click', ()=>{
+  magMode = "Arrivo";
+  document.getElementById('btnArrivi').classList.add('active'); document.getElementById('btnPartenze').classList.remove('active');
+  document.getElementById('magFormTitle').innerHTML = '<span class="lbl">Registra arrivo</span>';
+});
+document.getElementById('btnPartenze').addEventListener('click', ()=>{
+  magMode = "Partenza";
+  document.getElementById('btnPartenze').classList.add('active'); document.getElementById('btnArrivi').classList.remove('active');
+  document.getElementById('magFormTitle').innerHTML = '<span class="lbl">Registra partenza</span>';
+});
+document.getElementById('btnStandardMag').addEventListener('click', ()=>{
+  magTipo = "Standard";
+  document.getElementById('btnStandardMag').classList.add('active'); document.getElementById('btnCorriereMag').classList.remove('active');
+  document.getElementById('fieldsStandardMag').style.display = 'block'; document.getElementById('fieldsCorriereMag').style.display = 'none';
+});
+document.getElementById('btnCorriereMag').addEventListener('click', ()=>{
+  magTipo = "Corriere";
+  document.getElementById('btnCorriereMag').classList.add('active'); document.getElementById('btnStandardMag').classList.remove('active');
+  document.getElementById('fieldsCorriereMag').style.display = 'block'; document.getElementById('fieldsStandardMag').style.display = 'none';
+});
+document.getElementById('registraBtnMag').addEventListener('click', ()=>{
+  const cliente = document.getElementById('clienteInputMag').value.trim() || 'Non specificato';
+  const materiale = document.getElementById('materialeInputMag').value.trim() || 'Non specificato';
+  const note = document.getElementById('noteInputMag').value.trim();
+  const time = nowTime();
+  let mezzoCorriere, dettaglio;
+  if(magTipo === 'Standard'){ mezzoCorriere = document.getElementById('mezzoSelectMag').value; dettaglio = document.getElementById('autistaSelectMag').value; }
+  else { mezzoCorriere = document.getElementById('corriereSelectMag').value; dettaglio = document.getElementById('trackingInputMag').value.trim() || '—'; }
+  registroMag.unshift({ mode:magMode, tipo:magTipo, mezzoCorriere, dettaglio, cliente, materiale, note, time });
+  document.getElementById('clienteInputMag').value = ''; document.getElementById('materialeInputMag').value = ''; document.getElementById('noteInputMag').value = ''; document.getElementById('trackingInputMag').value = '';
+  renderMagLog();
+});
+let magFilter = "Tutti";
+document.getElementById('magLogFilters').addEventListener('click', e=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('#magLogFilters .filter-btn').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); magFilter = e.target.dataset.f; renderMagLog();
+});
+function renderMagLog(){
+  document.getElementById('statArriviMag').textContent = registroMag.filter(r=>r.mode==='Arrivo').length;
+  document.getElementById('statPartenzeMag').textContent = registroMag.filter(r=>r.mode==='Partenza').length;
+  document.getElementById('statCorriereMag').textContent = registroMag.filter(r=>r.tipo==='Corriere').length;
+  let filtered = registroMag;
+  if(magFilter==='Arrivo'||magFilter==='Partenza') filtered = registroMag.filter(r=>r.mode===magFilter);
+  else if(magFilter==='Standard'||magFilter==='Corriere') filtered = registroMag.filter(r=>r.tipo===magFilter);
+  document.getElementById('magLogBody').innerHTML = filtered.length ? filtered.map(r => `
+    <tr><td><span class="badge ${r.mode==='Arrivo'?'arrivo':'partenza'}">${r.mode==='Arrivo'?'↓ Arrivo':'↑ Partenza'}</span></td><td><span class="badge ${r.tipo==='Standard'?'standard':'corriere'}">${r.tipo}</span></td><td>${r.mezzoCorriere}</td><td>${r.cliente}</td><td style="font-family:'IBM Plex Mono'; color:var(--ink-dim);">${r.time}</td></tr>
+  `).join('') : '<tr><td colspan="5" class="empty-hint">Nessun movimento registrato ancora oggi.</td></tr>';
+}
+document.getElementById('printBtnMag').addEventListener('click', ()=>{
+  document.getElementById('printTitle').textContent = 'Viping — Registro arrivi e partenze';
+  document.getElementById('printDate').textContent = todayFull();
+  const rows = registroMag.map(r => `<tr><td>${r.mode}</td><td>${r.tipo}</td><td>${r.mezzoCorriere}</td><td>${r.dettaglio}</td><td>${r.cliente}</td><td>${r.materiale}</td><td>${r.time}</td><td>${r.note||'—'}</td></tr>`).join('') || '<tr><td colspan="8">Nessun movimento registrato oggi.</td></tr>';
+  document.getElementById('printBody2').innerHTML = `<table><thead><tr><th>Movimento</th><th>Tipo</th><th>Mezzo/Corriere</th><th>Autista/Tracking</th><th>Cliente</th><th>Materiale</th><th>Orario</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>`;
+  window.print();
+});
+
+// ============ TAB 6: FINE MISSIONE MULETTO ============
+let map2, muMarkers;
+function initMap2(){
+  map2 = L.map('map2').setView([43.8437, 10.5057], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:19 }).addTo(map2);
+  muMarkers = L.layerGroup().addTo(map2);
+}
+function populateMuLocation(){
+  document.getElementById('muLocation').innerHTML = locations.map(l=>`<option value="${l.key}">${l.name}</option>`).join('');
+}
+let muChiaviValue = "Nel quadro del mezzo", muHasProblem = false;
+document.querySelectorAll('#chiaviChips .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#chiaviChips .chip').forEach(c=>c.classList.remove('selected'));
+    chip.classList.add('selected'); muChiaviValue = chip.dataset.v;
+    document.getElementById('chiaviAltro').style.display = (muChiaviValue === 'Altro') ? 'block' : 'none';
+  });
+});
+document.getElementById('btnMuOk').addEventListener('click', ()=>{
+  muHasProblem = false;
+  document.getElementById('btnMuOk').classList.add('selected'); document.getElementById('btnMuProblem').classList.remove('selected');
+  document.getElementById('muProblemDesc').style.display = 'none';
+});
+document.getElementById('btnMuProblem').addEventListener('click', ()=>{
+  muHasProblem = true;
+  document.getElementById('btnMuProblem').classList.add('selected'); document.getElementById('btnMuOk').classList.remove('selected');
+  document.getElementById('muProblemDesc').style.display = 'block'; document.getElementById('muProblemDesc').focus();
+});
+document.getElementById('muSubmitBtn').addEventListener('click', ()=>{
+  const muletto = document.getElementById('muMuletto').value;
+  const operatore = document.getElementById('muOperatore').value;
+  const loc = locByKey(document.getElementById('muLocation').value);
+  const chiavi = muChiaviValue === 'Altro' ? (document.getElementById('chiaviAltro').value.trim() || 'Altro (non specificato)') : muChiaviValue;
+  const problema = muHasProblem ? (document.getElementById('muProblemDesc').value.trim() || 'Problema segnalato, nessun dettaglio') : null;
+  const time = nowTime();
+  muHandovers.unshift({ muletto, operatore, location: loc.name, chiavi, problema, time });
+  L.marker([loc.lat, loc.lng], { icon: L.divIcon({ className:'', html:`<div style="width:16px;height:16px;background:${problema?'#E2604F':'#4CAF7D'};border:2px solid #0F1B2E;border-radius:50%;"></div>`, iconSize:[16,16], iconAnchor:[8,8] }) })
+    .addTo(muMarkers).bindPopup(`<b>${muletto}</b><br>${loc.name}<br>Chiavi: ${chiavi}<br>${time}${problema?'<br><b style="color:#b23">'+problema+'</b>':''}`).openPopup();
+  map2.panTo([loc.lat, loc.lng]);
+  document.getElementById('muProblemDesc').value = ''; document.getElementById('chiaviAltro').value = ''; document.getElementById('btnMuOk').click();
+  renderMuLog();
+});
+function renderMuLog(){
+  document.getElementById('muStatTotal').textContent = muHandovers.length;
+  document.getElementById('muStatProblemi').textContent = muHandovers.filter(h=>h.problema).length;
+  document.getElementById('muLog').innerHTML = muHandovers.length ? muHandovers.map(h => `
+    <div class="log-item" style="grid-template-columns:1fr auto; ${h.problema?'border-color:var(--red);':''}">
+      <div><div class="stand-name">${h.muletto} · ${h.operatore}</div>
+      <div style="font-size:11px; color:var(--ink-dim); margin-top:4px;"><b style="color:var(--ink);">Lasciato a:</b> ${h.location} · <b style="color:var(--ink);">Chiavi:</b> ${h.chiavi}</div>
+      ${h.problema ? `<div style="margin-top:5px; font-family:'IBM Plex Mono'; font-size:10px; background:rgba(226,96,79,0.15); color:var(--red); padding:2px 8px; border-radius:10px; display:inline-block;">⚠ ${h.problema}</div>` : ''}</div>
+      <span style="font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--ink-dim);">${h.time}</span>
+    </div>
+  `).join('') : '<div class="empty-hint">Nessun verbale registrato ancora oggi.</div>';
+}
+document.getElementById('muPrintBtn').addEventListener('click', ()=>{
+  document.getElementById('printTitle').textContent = 'Viping — Resoconto fine missione muletti';
+  document.getElementById('printDate').textContent = todayFull();
+  const rows = muHandovers.map(h => `<tr><td>${h.muletto}</td><td>${h.operatore}</td><td>${h.location}</td><td>${h.chiavi}</td><td>${h.time}</td><td>${h.problema||'Nessuno'}</td></tr>`).join('') || '<tr><td colspan="6">Nessun verbale registrato oggi.</td></tr>';
+  document.getElementById('printBody2').innerHTML = `<table><thead><tr><th>Mezzo</th><th>Operatore</th><th>Lasciato a</th><th>Chiavi</th><th>Orario</th><th>Problemi</th></tr></thead><tbody>${rows}</tbody></table>`;
+  window.print();
+});
+
+// ============ TAB 7: PLANNER COORDINATORE ============
+const turniOpz = ["Mattina 08-14", "Pomeriggio 14-20", "Giornata 08-20"];
+const ruoli = ["Carrellista", "Facchino", "Magazziniere", "Autista"];
+let roleFilter = 'Tutti';
+document.getElementById('roleFilters').addEventListener('click', e=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('#roleFilters .filter-btn').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); roleFilter = e.target.dataset.r; renderRoster();
+});
+function renderRoster(){
+  const tbody = document.getElementById('rosterBody');
+  const filtered = roleFilter === 'Tutti' ? personale : personale.filter(p=>p.ruolo===roleFilter);
+  if(!filtered.length){ tbody.innerHTML = '<tr><td colspan="7" class="empty-hint">Nessuna persona in questa categoria.</td></tr>'; }
+  else {
+    tbody.innerHTML = filtered.map(p=>{
+      const turnoOpts = turniOpz.map(t => `<option value="${t}" ${t===p.turno?'selected':''}>${t}</option>`).join('');
+      const posOpts = ['<option value="">—</option>'].concat(locations.map(l => `<option value="${l.name}" ${l.name===p.posizione?'selected':''}>${l.name}</option>`)).join('');
+      return `
+        <tr>
+          <td><span class="role-badge ${p.ruolo}">${p.ruolo}</span></td>
+          <td style="font-family:'Space Grotesk'; font-weight:600;">${p.nome}</td>
+          <td><select class="turno-select" data-id="${p.id}">${turnoOpts}</select></td>
+          <td><input type="text" class="assign-input" data-id="${p.id}" value="${p.assegnazione||''}" placeholder="Muletto 1, Magazzino A..."></td>
+          <td><select class="pos-select" data-id="${p.id}">${posOpts}</select></td>
+          <td><input type="text" class="nota-input-pers" data-id="${p.id}" value="${p.nota||''}" placeholder="Nota..."></td>
+          <td><button class="remove-btn" data-id="${p.id}">Rimuovi</button></td>
+        </tr>`;
+    }).join('');
+  }
+  tbody.querySelectorAll('.turno-select').forEach(sel=> sel.addEventListener('change', e=>{ personale.find(p=>p.id===parseInt(e.target.dataset.id)).turno = e.target.value; }));
+  tbody.querySelectorAll('.assign-input').forEach(inp=> inp.addEventListener('input', e=>{ personale.find(p=>p.id===parseInt(e.target.dataset.id)).assegnazione = e.target.value; }));
+  tbody.querySelectorAll('.pos-select').forEach(sel=> sel.addEventListener('change', e=>{ personale.find(p=>p.id===parseInt(e.target.dataset.id)).posizione = e.target.value; }));
+  tbody.querySelectorAll('.nota-input-pers').forEach(inp=> inp.addEventListener('input', e=>{ personale.find(p=>p.id===parseInt(e.target.dataset.id)).nota = e.target.value; }));
+  tbody.querySelectorAll('.remove-btn').forEach(btn=> btn.addEventListener('click', e=>{ personale = personale.filter(p=>p.id!==parseInt(e.target.dataset.id)); renderRoster(); renderPlannerStats(); }));
+}
+function renderPlannerStats(){
+  document.getElementById('kpiTotalePers').textContent = personale.length;
+  document.getElementById('kpiCarr').textContent = personale.filter(p=>p.ruolo==='Carrellista').length;
+  document.getElementById('kpiFacc').textContent = personale.filter(p=>p.ruolo==='Facchino').length;
+  document.getElementById('kpiAuti').textContent = personale.filter(p=>p.ruolo==='Autista').length;
+}
+document.getElementById('addPersonaBtn').addEventListener('click', ()=>{
+  const nomeInput = document.getElementById('newNomePers');
+  const nome = nomeInput.value.trim();
+  const ruolo = document.getElementById('newRuoloPers').value;
+  if(!nome) return;
+  personale.push({ id: nextPersId++, nome, ruolo, turno: turniOpz[0], assegnazione:"", posizione:"", nota:"" });
+  nomeInput.value = ''; renderRoster(); renderPlannerStats();
+});
+document.getElementById('printBtnPlanner').addEventListener('click', ()=>{
+  document.getElementById('printTitle').textContent = 'Viping — Planner giornaliero Coordinatore';
+  document.getElementById('printDate').textContent = todayFull();
+  const sections = ruoli.map(ruolo=>{
+    const gruppo = personale.filter(p=>p.ruolo===ruolo);
+    if(!gruppo.length) return '';
+    const rows = gruppo.map(p => `<tr><td>${p.nome}</td><td>${p.turno}</td><td>${p.assegnazione||'—'}</td><td>${p.posizione||'—'}</td><td>${p.nota||'—'}</td></tr>`).join('');
+    return `<h3>${ruolo}i (${gruppo.length})</h3><table><thead><tr><th>Nome</th><th>Turno</th><th>Assegnazione</th><th>Posizione</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }).join('');
+  document.getElementById('printBody2').innerHTML = sections || '<p>Nessun personale in programma.</p>';
+  window.print();
+});
+
+// ============ TAB 8: TURNI & ORE ============
+function fmtDuration(sec){ return `${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`; }
+function renderClockGrid(){
+  document.getElementById('clockGrid').innerHTML = employees.map(name=>{
+    const st = clockState[name]; const active = !!st.in;
+    return `
+      <div class="clock-card">
+        <div class="name">${name}</div>
+        <div class="status ${active?'attivo':'libero'}">${active?'IN TURNO':'FUORI TURNO'}</div>
+        <div class="timer" data-timer="${name}">${active?'00:00:00':fmtDuration(st.todaySeconds)}</div>
+        <button class="clock-btn ${active?'esci':'entra'}" data-name="${name}">${active?'TERMINA TURNO':'INIZIA TURNO'}</button>
+      </div>`;
+  }).join('');
+  document.querySelectorAll('#clockGrid .clock-btn').forEach(btn=> btn.addEventListener('click', ()=> toggleClock(btn.dataset.name)));
+}
+function toggleClock(name){
+  const st = clockState[name];
+  if(!st.in){ st.in = new Date(); }
+  else {
+    const out = new Date(); const seconds = Math.round((out-st.in)/1000); st.todaySeconds += seconds;
+    turniLogs.unshift({ nome:name, entrata: st.in.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}), uscita: out.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}), ore: fmtDuration(seconds) });
+    st.in = null;
+    renderTurniLog();
+  }
+  renderClockGrid(); renderTurniStats();
+}
+function renderTurniLog(){
+  document.getElementById('turniLogBody').innerHTML = turniLogs.length ? turniLogs.map(l => `<tr><td>${l.nome}</td><td style="font-family:'IBM Plex Mono'; color:var(--ink-dim);">${l.entrata}</td><td style="font-family:'IBM Plex Mono'; color:var(--ink-dim);">${l.uscita}</td><td style="font-family:'IBM Plex Mono'; color:var(--amber); font-weight:600;">${l.ore}</td></tr>`).join('') : '<tr><td colspan="4" class="empty-hint">Nessuna timbratura registrata oggi.</td></tr>';
+}
+function renderTurniStats(){
+  document.getElementById('statAttiviTurni').textContent = employees.filter(e=>clockState[e].in).length;
+  let total = 0;
+  employees.forEach(e=>{ total += clockState[e].todaySeconds; if(clockState[e].in) total += Math.round((new Date()-clockState[e].in)/1000); });
+  document.getElementById('statOreOggiTurni').textContent = fmtDuration(total);
+}
+document.getElementById('addEmpBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('newEmpName');
+  const name = input.value.trim();
+  if(!name || employees.includes(name)) return;
+  employees.push(name); clockState[name] = { in:null, todaySeconds:0 };
+  input.value = ''; renderClockGrid();
+});
+setInterval(()=>{
+  employees.forEach(name=>{
+    const st = clockState[name]; const el = document.querySelector(`[data-timer="${name}"]`);
+    if(el && st.in){ const s = Math.round((new Date()-st.in)/1000); el.textContent = `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+  });
+  renderTurniStats();
+}, 1000);
+
+// ============ INIT ============
+function renderAll(){
+  renderStandList();
+  populateStandSelect();
+  renderDeliveryLog();
+  renderDashboard();
+  renderSegQueue();
+}
+initMap1();
+initMap2();
+populateSegDest();
+populateMuLocation();
+renderAll();
+renderMagLog();
+renderMuLog();
+renderRoster();
+renderPlannerStats();
+renderClockGrid();
+renderTurniLog();
+renderTurniStats();
+</script>
+
+
+</body></html>
