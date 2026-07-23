@@ -226,8 +226,8 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, serverTimestamp,
-  query, orderBy, limit, onSnapshot
+  getFirestore, collection, doc, setDoc, serverTimestamp,
+  query, orderBy, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -242,6 +242,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const collRef = collection(db, "fine_missione_muletto");
+function mezzoDocId(m){ return m.replace(/\//g, "_"); }
 
 let selectedKeyOption = null;
 
@@ -300,7 +301,7 @@ submitBtn.addEventListener('click', async () => {
   submitBtn.textContent = 'Registrazione in corso...';
 
   try {
-    await addDoc(collRef, {
+    await setDoc(doc(collRef, mezzoDocId(mezzo)), {
       operatore, mezzo, posizione, chiavi, note,
       timestamp: serverTimestamp()
     });
@@ -327,9 +328,9 @@ submitBtn.addEventListener('click', async () => {
   }
 });
 
-// Real-time log of recent entries
+// Real-time status: una sola scheda per mezzo, sostituita a ogni registrazione
 const logList = document.getElementById('logList');
-const q = query(collRef, orderBy('timestamp', 'desc'), limit(20));
+const q = query(collRef, orderBy('timestamp', 'desc'));
 
 onSnapshot(q, (snapshot) => {
   if (snapshot.empty){
