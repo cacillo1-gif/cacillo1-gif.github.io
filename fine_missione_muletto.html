@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fine Missione Muletto — Viping</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M20 20 L50 75 L80 20' fill='none' stroke='%23f5a623' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0F1B2E; --panel:#16243B; --panel-2:#1C2E4A; --line:#2A3E5C;
+    --ink:#EDF1F7; --ink-dim:#9FB0C9; --ink-low:#5f7191;
+    --amber:#F2A93B; --amber-dim:#c9860f; --amber-glow:rgba(242,169,59,0.25);
+    --green:#4CAF7D; --red:#E2604F;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 15% -10%, rgba(242,169,59,0.06), transparent 60%), linear-gradient(180deg,#060b16,var(--bg));
+    color:var(--ink);
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  .wrap{max-width:480px;margin:0 auto;padding:0 16px;}
+
+  header{
+    display:flex;align-items:center;gap:12px;
+    padding:18px 0 14px;
+  }
+  .logo{
+    width:38px;height:38px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:10px;
+    background:linear-gradient(145deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);
+  }
+  .logo svg{width:20px;height:20px;}
+  header .title strong{display:block;font-size:16px;}
+  header .title span{display:block;font-size:12px;color:var(--ink-dim);margin-top:1px;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    margin:0 0 16px;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    color:var(--amber);
+    display:flex;align-items:center;gap:6px;
+  }
+
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--ink-dim);
+    margin-bottom:6px;
+    margin-top:16px;
+  }
+  label:first-of-type{margin-top:0;}
+
+  input[type=text], input[type=number], textarea, select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--ink);
+    border-radius:10px;
+    padding:13px 14px;
+    font-size:16px;
+    font-family:inherit;
+    outline:none;
+    transition:.15s;
+  }
+  input:focus, textarea:focus, select:focus{
+    border-color:var(--amber-dim);
+    box-shadow:0 0 0 3px var(--amber-glow);
+  }
+  textarea{resize:vertical;min-height:80px;}
+
+  .key-options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:6px;
+  }
+  .key-opt{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    border-radius:10px;
+    padding:12px 10px;
+    font-size:13.5px;
+    text-align:center;
+    cursor:pointer;
+    transition:.15s;
+    user-select:none;
+  }
+  .key-opt.selected{
+    background:linear-gradient(145deg,var(--amber),var(--amber-dim));
+    color:#1a1206;
+    border-color:transparent;
+    font-weight:600;
+  }
+
+  #submitBtn{
+    width:100%;
+    margin-top:22px;
+    padding:16px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(145deg,var(--amber),var(--amber-dim));
+    color:#1a1206;
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:0.3px;
+    cursor:pointer;
+    transition:.15s;
+  }
+  #submitBtn:active{filter:brightness(0.95);}
+  #submitBtn:disabled{opacity:0.5;cursor:default;}
+
+  #statusMsg{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:10px;
+    font-size:13.5px;
+    display:none;
+  }
+  #statusMsg.ok{
+    display:block;
+    background:rgba(76,175,125,0.12);
+    border:1px solid rgba(76,175,125,0.4);
+    color:#8fd6ac;
+  }
+  #statusMsg.err{
+    display:block;
+    background:rgba(226,96,79,0.12);
+    border:1px solid rgba(226,96,79,0.4);
+    color:#f0a099;
+  }
+
+  .log-item{
+    padding:12px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .log-item:last-child{border-bottom:none;}
+  .log-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:8px;
+  }
+  .log-mezzo{font-weight:700;color:var(--amber);font-size:14.5px;}
+  .log-time{font-size:12px;color:var(--ink-low);white-space:nowrap;}
+  .log-op{font-size:13.5px;color:var(--ink-dim);margin-top:3px;}
+  .log-chiavi{font-size:12.5px;color:var(--ink-dim);margin-top:3px;}
+  .log-note{font-size:13px;color:var(--ink);margin-top:5px;line-height:1.4;}
+  .empty-log{color:var(--ink-low);font-size:13.5px;text-align:center;padding:20px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 100 100"><path d="M20 20 L50 75 L80 20" fill="none" stroke="#F2A93B" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="title">
+      <strong>Fine Missione Muletto</strong>
+      <span>Viping · Registrazione consegna mezzo</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>Nuova registrazione</h2>
+
+    <label for="operatore">Operatore</label>
+    <input type="text" id="operatore" placeholder="Nome e cognome">
+
+    <label for="mezzo">Numero muletto</label>
+    <input type="text" id="mezzo" placeholder="Es. 3" inputmode="numeric">
+
+    <label for="posizione">Posizione mezzo</label>
+    <select id="posizione">
+      <option value="">Seleziona posizione...</option>
+      <option value="Via Filzi (deposito)">Via Filzi (deposito)</option>
+      <option value="Piazza Napoleone">Piazza Napoleone</option>
+      <option value="Piazza San Michele">Piazza San Michele</option>
+      <option value="Piazza dell'Anfiteatro">Piazza dell'Anfiteatro</option>
+      <option value="Baluardo San Paolino">Baluardo San Paolino</option>
+      <option value="Piazza Santa Maria">Piazza Santa Maria</option>
+      <option value="Palazzetto dello Sport">Palazzetto dello Sport</option>
+      <option value="Polo Fiere">Polo Fiere</option>
+      <option value="altro">Altro (specifica sotto)</option>
+    </select>
+    <input type="text" id="posAltro" placeholder="Specifica la posizione" style="margin-top:8px;display:none;">
+
+    <label>Posizione chiavi</label>
+    <div class="key-options" id="keyOptions">
+      <div class="key-opt" data-val="In cabina">In cabina</div>
+      <div class="key-opt" data-val="Ufficio deposito">Ufficio deposito</div>
+      <div class="key-opt" data-val="Portachiavi magazzino">Portachiavi magazzino</div>
+      <div class="key-opt" data-val="Consegnate a mano">Consegnate a mano</div>
+    </div>
+    <input type="text" id="chiaviAltro" placeholder="Altra posizione (se non elencata sopra)" style="margin-top:8px;">
+
+    <label for="note">Note</label>
+    <textarea id="note" placeholder="Eventuali problemi, stato del mezzo, altro..."></textarea>
+
+    <button id="submitBtn">Registra fine missione</button>
+    <div id="statusMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Ultime registrazioni</h2>
+    <div id="logList"><div class="empty-log">Nessuna registrazione ancora oggi.</div></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, serverTimestamp,
+  query, orderBy, limit, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC12Mt3dFIunD1iIJE6tzrbFhmPmqMHOPY",
+  authDomain: "viping-turni.firebaseapp.com",
+  projectId: "viping-turni",
+  storageBucket: "viping-turni.firebasestorage.app",
+  messagingSenderId: "946156068238",
+  appId: "1:946156068238:web:0de3a96722c972cd3358df"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const collRef = collection(db, "fine_missione_muletto");
+
+let selectedKeyOption = null;
+
+const keyOptionsEl = document.getElementById('keyOptions');
+keyOptionsEl.addEventListener('click', (e) => {
+  const opt = e.target.closest('.key-opt');
+  if (!opt) return;
+  keyOptionsEl.querySelectorAll('.key-opt').forEach(o => o.classList.remove('selected'));
+  opt.classList.add('selected');
+  selectedKeyOption = opt.dataset.val;
+  document.getElementById('chiaviAltro').value = '';
+});
+
+document.getElementById('chiaviAltro').addEventListener('input', (e) => {
+  if (e.target.value.trim()){
+    keyOptionsEl.querySelectorAll('.key-opt').forEach(o => o.classList.remove('selected'));
+    selectedKeyOption = null;
+  }
+});
+
+const posizioneSelect = document.getElementById('posizione');
+const posAltroInput = document.getElementById('posAltro');
+posizioneSelect.addEventListener('change', () => {
+  if (posizioneSelect.value === 'altro'){
+    posAltroInput.style.display = 'block';
+    posAltroInput.focus();
+  } else {
+    posAltroInput.style.display = 'none';
+    posAltroInput.value = '';
+  }
+});
+
+const submitBtn = document.getElementById('submitBtn');
+const statusMsg = document.getElementById('statusMsg');
+
+submitBtn.addEventListener('click', async () => {
+  const operatore = document.getElementById('operatore').value.trim();
+  const mezzo = document.getElementById('mezzo').value.trim();
+  const posSelectVal = document.getElementById('posizione').value;
+  const posAltro = document.getElementById('posAltro').value.trim();
+  const posizione = posSelectVal === 'altro' ? posAltro : posSelectVal;
+  const chiaviAltro = document.getElementById('chiaviAltro').value.trim();
+  const chiavi = chiaviAltro || selectedKeyOption;
+  const note = document.getElementById('note').value.trim();
+
+  statusMsg.className = '';
+  statusMsg.textContent = '';
+
+  if (!operatore || !mezzo || !posizione || !chiavi){
+    statusMsg.className = 'err';
+    statusMsg.textContent = 'Compila operatore, numero muletto, posizione mezzo e posizione chiavi prima di registrare.';
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Registrazione in corso...';
+
+  try {
+    await addDoc(collRef, {
+      operatore, mezzo, posizione, chiavi, note,
+      timestamp: serverTimestamp()
+    });
+
+    statusMsg.className = 'ok';
+    statusMsg.textContent = 'Fine missione registrata correttamente.';
+
+    document.getElementById('mezzo').value = '';
+    document.getElementById('note').value = '';
+    document.getElementById('posizione').value = '';
+    document.getElementById('posAltro').value = '';
+    document.getElementById('posAltro').style.display = 'none';
+    document.getElementById('chiaviAltro').value = '';
+    document.querySelectorAll('.key-opt').forEach(o => o.classList.remove('selected'));
+    selectedKeyOption = null;
+
+  } catch (err){
+    statusMsg.className = 'err';
+    statusMsg.textContent = 'Errore di connessione al database. Riprova.';
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Registra fine missione';
+  }
+});
+
+// Real-time log of recent entries
+const logList = document.getElementById('logList');
+const q = query(collRef, orderBy('timestamp', 'desc'), limit(20));
+
+onSnapshot(q, (snapshot) => {
+  if (snapshot.empty){
+    logList.innerHTML = '<div class="empty-log">Nessuna registrazione ancora oggi.</div>';
+    return;
+  }
+  logList.innerHTML = '';
+  snapshot.forEach((doc) => {
+    const d = doc.data();
+    const time = d.timestamp ? d.timestamp.toDate().toLocaleString('it-IT', {
+      day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'
+    }) : '—';
+
+    const item = document.createElement('div');
+    item.className = 'log-item';
+    item.innerHTML = `
+      <div class="log-top">
+        <span class="log-mezzo">Muletto ${escapeHtml(d.mezzo || '—')}</span>
+        <span class="log-time">${time}</span>
+      </div>
+      <div class="log-op">${escapeHtml(d.operatore || '—')}</div>
+      <div class="log-chiavi">📍 ${escapeHtml(d.posizione || '—')}</div>
+      <div class="log-chiavi">🔑 ${escapeHtml(d.chiavi || '—')}</div>
+      ${d.note ? `<div class="log-note">${escapeHtml(d.note)}</div>` : ''}
+    `;
+    logList.appendChild(item);
+  });
+}, (err) => {
+  logList.innerHTML = '<div class="empty-log">Errore nel caricamento delle registrazioni.</div>';
+  console.error(err);
+});
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
