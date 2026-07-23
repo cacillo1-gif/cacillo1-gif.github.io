@@ -602,25 +602,7 @@
     </div>
     <div class="panel">
       <h2 class="section-title"><span class="lbl">Timbra entrata / uscita</span></h2>
-      <div class="clock-grid" id="clockGrid">
-      <div class="clock-card">
-        <div class="name">Marco Bianchi</div>
-        <div class="status libero">FUORI TURNO</div>
-        <div class="timer" data-timer="Marco Bianchi">0h 0m</div>
-        <button class="clock-btn entra" data-name="Marco Bianchi">INIZIA TURNO</button>
-      </div>
-      <div class="clock-card">
-        <div class="name">Luca Ferretti</div>
-        <div class="status libero">FUORI TURNO</div>
-        <div class="timer" data-timer="Luca Ferretti">0h 0m</div>
-        <button class="clock-btn entra" data-name="Luca Ferretti">INIZIA TURNO</button>
-      </div>
-      <div class="clock-card">
-        <div class="name">Sara Conti</div>
-        <div class="status libero">FUORI TURNO</div>
-        <div class="timer" data-timer="Sara Conti">0h 0m</div>
-        <button class="clock-btn entra" data-name="Sara Conti">INIZIA TURNO</button>
-      </div></div>
+      <div class="clock-grid" id="clockGrid"></div>
       <div class="add-row">
         <input type="text" id="newEmpName" placeholder="Nome nuovo operatore">
         <button id="addEmpBtn">Aggiungi</button>
@@ -1191,7 +1173,7 @@ function empTodaySeconds(name){
   return turniLogs.filter(l=>l.nome===name).reduce((s,l)=> s+l.oreSec, 0);
 }
 function renderClockGrid(){
-  document.getElementById('clockGrid').innerHTML = employees.map(name=>{
+  document.getElementById('clockGrid').innerHTML = employees.length ? employees.map(name=>{
     const st = clockState[name] || { in:null }; const active = !!st.in;
     return `
       <div class="clock-card">
@@ -1200,7 +1182,7 @@ function renderClockGrid(){
         <div class="timer" data-timer="${name}">${active?'00:00:00':fmtDuration(empTodaySeconds(name))}</div>
         <button class="clock-btn ${active?'esci':'entra'}" data-name="${name}">${active?'TERMINA TURNO':'INIZIA TURNO'}</button>
       </div>`;
-  }).join('');
+  }).join('') : '<div class="empty-hint">Nessun operatore. Aggiungine uno qui sotto.</div>';
   document.querySelectorAll('#clockGrid .clock-btn').forEach(btn=> btn.addEventListener('click', ()=> toggleClock(btn.dataset.name)));
 }
 async function toggleClock(name){
