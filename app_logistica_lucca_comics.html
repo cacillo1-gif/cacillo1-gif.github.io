@@ -1212,7 +1212,7 @@ function renderClockGrid(){
         <div class="name">${name}</div>
         <div class="status ${active?'attivo':'libero'}">${active?'IN TURNO':'FUORI TURNO'}</div>
         <div class="timer" data-timer="${name}">${active?'00:00:00':fmtDuration(empTodaySeconds(name))}</div>
-        <div class="badge pos-cell-turni ${posizioneBadgeClass[pos]}" data-name="${name}" style="cursor:pointer; margin-top:8px; width:100%; justify-content:center; ${pos?'':'background:var(--panel-2); color:var(--ink-dim);'}">${pos || 'Posizione —'}</div>
+        <div class="badge pos-cell-turni ${posizioneBadgeClass[pos] || ''}" data-name="${name}" style="cursor:pointer; margin-top:8px; width:100%; justify-content:center; ${pos?'':'background:var(--panel-2); color:var(--ink-dim);'}">${pos || 'Posizione —'}</div>
         <button class="clock-btn ${active?'esci':'entra'}" data-name="${name}">${active?'TERMINA TURNO':'INIZIA TURNO'}</button>
       </div>`;
   }).join('') : '<div class="empty-hint">Nessun operatore. Aggiungine uno qui sotto.</div>';
