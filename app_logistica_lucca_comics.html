@@ -627,6 +627,7 @@
       <div id="turniCoordinatorView" style="display:none;">
         <h2 class="section-title" style="margin-top:6px;"><span class="lbl">Dipendenti attivi e dove sono</span></h2>
         <table><thead><tr><th>Operatore</th><th>Stato</th><th>Posizione</th><th>Ore totali oggi</th></tr></thead><tbody id="oreDipendenteBody"></tbody></table>
+        <button class="print-btn" id="printBtnTurni" style="margin-top:12px;">STAMPA REPORT ORE DI OGGI</button>
 
         <h2 class="section-title" style="margin-top:22px;"><span class="lbl">Composizione turni della settimana</span></h2>
         <div style="overflow-x:auto;">
@@ -1312,6 +1313,24 @@ function renderOreDipendente(){
     return `<tr><td>${name}</td><td><span class="badge ${st.in?'corso':'completata'}">${st.in?'In turno':'Fuori turno'}</span></td><td>${st.posizione || '—'}</td><td style="font-family:'IBM Plex Mono'; color:var(--amber); font-weight:600;">${fmtDuration(seconds)}</td></tr>`;
   }).join('') : '<tr><td colspan="4" class="empty-hint">Nessun operatore.</td></tr>';
 }
+document.getElementById('printBtnTurni').addEventListener('click', ()=>{
+  document.getElementById('printTitle').textContent = 'Viping — Report ore lavorate';
+  document.getElementById('printDate').textContent = todayFull();
+  const riepilogoRows = employees.map(name=>{
+    const st = clockState[name] || { in:null, posizione:"" };
+    let seconds = empTodaySeconds(name);
+    if(st.in) seconds += Math.round((new Date()-st.in)/1000);
+    return `<tr><td>${name}</td><td>${st.in?'In turno':'Fuori turno'}</td><td>${st.posizione || '—'}</td><td>${fmtDuration(seconds)}</td></tr>`;
+  }).join('') || '<tr><td colspan="4">Nessun operatore.</td></tr>';
+  const dettaglioRows = turniLogs.map(l => `<tr><td>${l.nome}</td><td>${l.entrata.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</td><td>${l.uscita.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</td><td>${fmtDuration(l.oreSec)}</td></tr>`).join('') || '<tr><td colspan="4">Nessuna timbratura registrata oggi.</td></tr>';
+  document.getElementById('printBody2').innerHTML = `
+    <h2 style="font-size:13px; margin:0 0 6px;">Riepilogo ore per dipendente</h2>
+    <table><thead><tr><th>Operatore</th><th>Stato</th><th>Posizione</th><th>Ore totali oggi</th></tr></thead><tbody>${riepilogoRows}</tbody></table>
+    <h2 style="font-size:13px; margin:16px 0 6px;">Dettaglio timbrature</h2>
+    <table><thead><tr><th>Operatore</th><th>Entrata</th><th>Uscita</th><th>Ore</th></tr></thead><tbody>${dettaglioRows}</tbody></table>
+  `;
+  window.print();
+});
 
 const planCol = collection(db, "turni_plan");
 const giorniSettimana = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
