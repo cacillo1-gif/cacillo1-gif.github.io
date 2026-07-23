@@ -645,7 +645,7 @@
 // ============ FIREBASE (sync turni/presenze in tempo reale) ============
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, addDoc, getDocs,
+  getFirestore, collection, doc, setDoc, addDoc,
   onSnapshot, query, where, orderBy, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -1260,15 +1260,6 @@ onSnapshot(query(logCol, where('entrata','>=', Timestamp.fromDate(startOfToday))
   });
   renderTurniLog(); renderTurniStats();
 });
-
-// Primo avvio in assoluto: crea gli operatori di default se il registro è vuoto
-(async function seedDefaultEmployeesIfEmpty(){
-  const snap = await getDocs(statusCol);
-  if(snap.empty){
-    const defaults = ["Marco Bianchi", "Luca Ferretti", "Sara Conti"];
-    await Promise.all(defaults.map(n=> setDoc(doc(statusCol, empDocId(n)), { nome:n, in:null }, { merge:true })));
-  }
-})();
 
 // ============ INIT ============
 function renderAll(){
