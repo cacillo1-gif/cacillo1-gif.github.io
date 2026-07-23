@@ -641,7 +641,28 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
+<script type="module">
+// ============ FIREBASE (sync turni/presenze in tempo reale) ============
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, doc, setDoc, addDoc, getDocs,
+  onSnapshot, query, where, orderBy, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC12Mt3dFIunD1iIJE6tzrbFhmPmqMHOPY",
+  authDomain: "viping-turni.firebaseapp.com",
+  projectId: "viping-turni",
+  storageBucket: "viping-turni.firebasestorage.app",
+  messagingSenderId: "946156068238",
+  appId: "1:946156068238:web:0de3a96722c972cd3358df"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const statusCol = collection(db, "turni_stato");
+const logCol = collection(db, "turni_log");
+function empDocId(name){ return name.replace(/\//g, "_"); }
+
 // ============ DATI CONDIVISI ============
 const DEPOT = { name:"Deposito — Via Filzi", lat:43.839028, lng:10.513550 };
 const locations = [
@@ -689,10 +710,9 @@ let personale = [
   { id:3, nome:"Sara Conti",     ruolo:"Autista",     turno:"Giornata 08-20", assegnazione:"Furgone 1", posizione:"Via Filzi (deposito)", nota:"" },
 ];
 let nextPersId = 4;
-let employees = ["Marco Bianchi", "Luca Ferretti", "Sara Conti"];
+let employees = [];
 let clockState = {};
 let turniLogs = [];
-employees.forEach(e => clockState[e] = { in:null, todaySeconds:0 });
 
 // ============ TABS ============
 document.querySelectorAll('.tab-btn').forEach(btn=>{
@@ -1165,55 +1185,90 @@ document.getElementById('printBtnPlanner').addEventListener('click', ()=>{
   window.print();
 });
 
-// ============ TAB 8: TURNI & ORE ============
+// ============ TAB 8: TURNI & ORE (sincronizzato via Firebase) ============
 function fmtDuration(sec){ return `${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`; }
+function empTodaySeconds(name){
+  return turniLogs.filter(l=>l.nome===name).reduce((s,l)=> s+l.oreSec, 0);
+}
 function renderClockGrid(){
   document.getElementById('clockGrid').innerHTML = employees.map(name=>{
-    const st = clockState[name]; const active = !!st.in;
+    const st = clockState[name] || { in:null }; const active = !!st.in;
     return `
       <div class="clock-card">
         <div class="name">${name}</div>
         <div class="status ${active?'attivo':'libero'}">${active?'IN TURNO':'FUORI TURNO'}</div>
-        <div class="timer" data-timer="${name}">${active?'00:00:00':fmtDuration(st.todaySeconds)}</div>
+        <div class="timer" data-timer="${name}">${active?'00:00:00':fmtDuration(empTodaySeconds(name))}</div>
         <button class="clock-btn ${active?'esci':'entra'}" data-name="${name}">${active?'TERMINA TURNO':'INIZIA TURNO'}</button>
       </div>`;
   }).join('');
   document.querySelectorAll('#clockGrid .clock-btn').forEach(btn=> btn.addEventListener('click', ()=> toggleClock(btn.dataset.name)));
 }
-function toggleClock(name){
-  const st = clockState[name];
-  if(!st.in){ st.in = new Date(); }
-  else {
-    const out = new Date(); const seconds = Math.round((out-st.in)/1000); st.todaySeconds += seconds;
-    turniLogs.unshift({ nome:name, entrata: st.in.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}), uscita: out.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}), ore: fmtDuration(seconds) });
-    st.in = null;
-    renderTurniLog();
+async function toggleClock(name){
+  const st = clockState[name] || { in:null };
+  const ref = doc(statusCol, empDocId(name));
+  if(!st.in){
+    await setDoc(ref, { nome:name, in: Timestamp.fromDate(new Date()) }, { merge:true });
+  } else {
+    const out = new Date();
+    const seconds = Math.round((out - st.in)/1000);
+    await addDoc(logCol, { nome:name, entrata: Timestamp.fromDate(st.in), uscita: Timestamp.fromDate(out), oreSec: seconds });
+    await setDoc(ref, { nome:name, in:null }, { merge:true });
   }
-  renderClockGrid(); renderTurniStats();
 }
 function renderTurniLog(){
-  document.getElementById('turniLogBody').innerHTML = turniLogs.length ? turniLogs.map(l => `<tr><td>${l.nome}</td><td style="font-family:'IBM Plex Mono'; color:var(--ink-dim);">${l.entrata}</td><td style="font-family:'IBM Plex Mono'; color:var(--ink-dim);">${l.uscita}</td><td style="font-family:'IBM Plex Mono'; color:var(--amber); font-weight:600;">${l.ore}</td></tr>`).join('') : '<tr><td colspan="4" class="empty-hint">Nessuna timbratura registrata oggi.</td></tr>';
+  document.getElementById('turniLogBody').innerHTML = turniLogs.length ? turniLogs.map(l => `<tr><td>${l.nome}</td><td style="font-family:'IBM Plex Mono'; color:var(--ink-dim);">${l.entrata.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</td><td style="font-family:'IBM Plex Mono'; color:var(--ink-dim);">${l.uscita.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</td><td style="font-family:'IBM Plex Mono'; color:var(--amber); font-weight:600;">${fmtDuration(l.oreSec)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty-hint">Nessuna timbratura registrata oggi.</td></tr>';
 }
 function renderTurniStats(){
-  document.getElementById('statAttiviTurni').textContent = employees.filter(e=>clockState[e].in).length;
-  let total = 0;
-  employees.forEach(e=>{ total += clockState[e].todaySeconds; if(clockState[e].in) total += Math.round((new Date()-clockState[e].in)/1000); });
+  document.getElementById('statAttiviTurni').textContent = employees.filter(e=>clockState[e] && clockState[e].in).length;
+  let total = turniLogs.reduce((s,l)=> s+l.oreSec, 0);
+  employees.forEach(e=>{ const st = clockState[e]; if(st && st.in) total += Math.round((new Date()-st.in)/1000); });
   document.getElementById('statOreOggiTurni').textContent = fmtDuration(total);
 }
-document.getElementById('addEmpBtn').addEventListener('click', ()=>{
+document.getElementById('addEmpBtn').addEventListener('click', async ()=>{
   const input = document.getElementById('newEmpName');
   const name = input.value.trim();
   if(!name || employees.includes(name)) return;
-  employees.push(name); clockState[name] = { in:null, todaySeconds:0 };
-  input.value = ''; renderClockGrid();
+  input.value = '';
+  await setDoc(doc(statusCol, empDocId(name)), { nome:name, in:null }, { merge:true });
 });
 setInterval(()=>{
   employees.forEach(name=>{
     const st = clockState[name]; const el = document.querySelector(`[data-timer="${name}"]`);
-    if(el && st.in){ const s = Math.round((new Date()-st.in)/1000); el.textContent = `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+    if(el && st && st.in){ const s = Math.round((new Date()-st.in)/1000); el.textContent = `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
   });
   renderTurniStats();
 }, 1000);
+
+// Stato presenze: ascolto in tempo reale, aggiornato su tutti i dispositivi aperti
+onSnapshot(query(statusCol, orderBy('nome')), (snap)=>{
+  const newEmployees = []; const newClockState = {};
+  snap.forEach(docSnap=>{
+    const d = docSnap.data();
+    newEmployees.push(d.nome);
+    newClockState[d.nome] = { in: d.in ? d.in.toDate() : null };
+  });
+  employees = newEmployees; clockState = newClockState;
+  renderClockGrid(); renderTurniStats();
+});
+
+// Registro timbrature di oggi: ascolto in tempo reale
+const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+onSnapshot(query(logCol, where('entrata','>=', Timestamp.fromDate(startOfToday)), orderBy('entrata','desc')), (snap)=>{
+  turniLogs = snap.docs.map(d=>{
+    const v = d.data();
+    return { nome:v.nome, entrata:v.entrata.toDate(), uscita:v.uscita.toDate(), oreSec:v.oreSec };
+  });
+  renderTurniLog(); renderTurniStats();
+});
+
+// Primo avvio in assoluto: crea gli operatori di default se il registro è vuoto
+(async function seedDefaultEmployeesIfEmpty(){
+  const snap = await getDocs(statusCol);
+  if(snap.empty){
+    const defaults = ["Marco Bianchi", "Luca Ferretti", "Sara Conti"];
+    await Promise.all(defaults.map(n=> setDoc(doc(statusCol, empDocId(n)), { nome:n, in:null }, { merge:true })));
+  }
+})();
 
 // ============ INIT ============
 function renderAll(){
