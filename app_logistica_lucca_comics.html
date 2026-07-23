@@ -1201,22 +1201,27 @@ function fmtDuration(sec){ return `${Math.floor(sec/3600)}h ${Math.floor((sec%36
 function empTodaySeconds(name){
   return turniLogs.filter(l=>l.nome===name).reduce((s,l)=> s+l.oreSec, 0);
 }
+const posizioneCycle = ["", "Filzi", "Transenne", "Furgone", "Facchino"];
+const posizioneBadgeClass = { "":"", "Filzi":"completata", "Transenne":"Alta", "Furgone":"Bassa", "Facchino":"Media" };
 function renderClockGrid(){
   document.getElementById('clockGrid').innerHTML = employees.length ? employees.map(name=>{
     const st = clockState[name] || { in:null, posizione:"" }; const active = !!st.in;
-    const posOpts = ['<option value="">Posizione —</option>'].concat(locations.map(l => `<option value="${l.name}" ${l.name===st.posizione?'selected':''}>${l.name}</option>`)).join('');
+    const pos = st.posizione || "";
     return `
       <div class="clock-card">
         <div class="name">${name}</div>
         <div class="status ${active?'attivo':'libero'}">${active?'IN TURNO':'FUORI TURNO'}</div>
         <div class="timer" data-timer="${name}">${active?'00:00:00':fmtDuration(empTodaySeconds(name))}</div>
-        <select class="pos-select-turni" data-name="${name}" style="margin-top:8px;">${posOpts}</select>
+        <div class="badge pos-cell-turni ${posizioneBadgeClass[pos]}" data-name="${name}" style="cursor:pointer; margin-top:8px; width:100%; justify-content:center; ${pos?'':'background:var(--panel-2); color:var(--ink-dim);'}">${pos || 'Posizione —'}</div>
         <button class="clock-btn ${active?'esci':'entra'}" data-name="${name}">${active?'TERMINA TURNO':'INIZIA TURNO'}</button>
       </div>`;
   }).join('') : '<div class="empty-hint">Nessun operatore. Aggiungine uno qui sotto.</div>';
   document.querySelectorAll('#clockGrid .clock-btn').forEach(btn=> btn.addEventListener('click', ()=> toggleClock(btn.dataset.name)));
-  document.querySelectorAll('#clockGrid .pos-select-turni').forEach(sel=> sel.addEventListener('change', ()=> {
-    setDoc(doc(statusCol, empDocId(sel.dataset.name)), { nome:sel.dataset.name, posizione: sel.value }, { merge:true });
+  document.querySelectorAll('#clockGrid .pos-cell-turni').forEach(cell=> cell.addEventListener('click', ()=> {
+    const name = cell.dataset.name;
+    const current = (clockState[name] && clockState[name].posizione) || "";
+    const next = posizioneCycle[(posizioneCycle.indexOf(current)+1) % posizioneCycle.length];
+    setDoc(doc(statusCol, empDocId(name)), { nome:name, posizione: next }, { merge:true });
   }));
 }
 async function toggleClock(name){
