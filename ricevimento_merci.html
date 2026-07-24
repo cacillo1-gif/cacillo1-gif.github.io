@@ -193,7 +193,11 @@
     <h2 id="formTitle">Nuovo ricevimento — Corriere</h2>
 
     <label for="operatore">Operatore</label>
-    <input type="text" id="operatore" placeholder="Nome e cognome">
+    <select id="operatore">
+      <option value="">Seleziona operatore...</option>
+      <option value="Paolo">Paolo</option>
+      <option value="Roberto">Roberto</option>
+    </select>
 
     <label for="mittente" id="mittenteLabel">Corriere / Mittente</label>
     <input type="text" id="mittente" placeholder="Es. DHL, SDA, BRT...">
@@ -202,7 +206,13 @@
     <input type="number" id="colli" placeholder="Es. 3" inputmode="numeric" min="0">
 
     <label for="doveSono">Dove sono i colli</label>
-    <input type="text" id="doveSono" placeholder="Es. Magazzino H, fila 3">
+    <select id="doveSono">
+      <option value="">Seleziona posizione...</option>
+      <option value="Posto Corriere">Posto Corriere</option>
+      <option value="Magazzino A">Magazzino A</option>
+      <option value="Magazzino B">Magazzino B</option>
+      <option value="Fuori">Fuori</option>
+    </select>
 
     <label>Foto conferma sistemazione</label>
     <span style="display:block;font-size:11.5px;color:var(--ink-low);margin-top:-10px;margin-bottom:8px;">Da scattare una volta sistemati i colli al loro posto in magazzino</span>
