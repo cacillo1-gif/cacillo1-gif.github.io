@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Assistente Appuntamenti — Viping</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2040%2040%22%3E%3Crect%20width%3D%2240%22%20height%3D%2240%22%20rx%3D%229%22%20fill%3D%22%234CAF7D%22/%3E%3Cpath%20d%3D%22M11%2020.5%20L17%2027%20L29%2013%22%20stroke%3D%22%230d1f16%22%20stroke-width%3D%224.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0F1B2E; --panel:#16243B; --panel-2:#1C2E4A; --line:#2A3E5C;
+    --ink:#EDF1F7; --ink-dim:#9FB0C9; --ink-low:#5f7191;
+    --green:#4CAF7D; --green-dim:#3a8f63; --green-glow:rgba(76,175,125,0.25);
+    --amber:#F2A93B; --red:#E2604F; --red-dim:#b5453a; --red-glow:rgba(226,96,79,0.18);
+    --blue:#5B9BD5; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 15% -10%, rgba(76,175,125,0.08), transparent 60%), linear-gradient(180deg,#060b16,var(--bg));
+    color:var(--ink);
+    min-height:100vh;
+    padding-bottom:50px;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:0 16px;}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0 14px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .logo{
+    width:40px;height:40px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:10px;
+    background:linear-gradient(145deg,var(--green),var(--green-dim));
+  }
+  .logo svg{width:20px;height:20px;}
+  .brand h1{font-family:'Space Grotesk';font-weight:700;font-size:17px;margin:0;letter-spacing:0.2px;}
+  .brand p{margin:2px 0 0;font-size:12px;color:var(--ink-dim);}
+  #notifyBtn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);
+    font-size:12px;font-family:'IBM Plex Mono';padding:8px 13px;border-radius:20px;cursor:pointer;transition:.15s;white-space:nowrap;
+  }
+  #notifyBtn.on{border-color:var(--green);color:var(--green);}
+  #notifyBtn:hover{border-color:var(--green);}
+
+  #banners{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .banner{
+    background:linear-gradient(145deg,var(--panel-2),var(--panel));border:1px solid var(--green);border-radius:12px;
+    padding:12px 14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+    box-shadow:0 0 0 3px var(--green-glow);
+  }
+  .banner .txt strong{display:block;font-size:13.5px;color:var(--green);margin-bottom:2px;}
+  .banner .txt span{font-size:13px;color:var(--ink);}
+  .banner button{background:none;border:none;color:var(--ink-dim);font-size:16px;cursor:pointer;line-height:1;padding:2px;}
+
+  .tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .tab-btn{
+    flex:1;text-align:center;padding:12px 8px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink-dim);font-size:13.5px;font-weight:600;cursor:pointer;transition:.15s;
+    font-family:'Space Grotesk';
+  }
+  .tab-btn.active{background:linear-gradient(145deg,var(--green),var(--green-dim));color:#0d1f16;border-color:transparent;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+  .card h2{margin:0 0 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:1px;color:var(--green);font-family:'Space Grotesk';display:flex;align-items:center;gap:8px;}
+  .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px;flex-wrap:wrap;}
+  .card-head h2{margin:0;}
+
+  label{display:block;font-size:12.5px;color:var(--ink-dim);margin-bottom:6px;margin-top:15px;}
+  label:first-of-type{margin-top:0;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  input[type=text], input[type=number], input[type=date], input[type=time], textarea, select{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:12px 13px;font-size:15px;font-family:inherit;outline:none;transition:.15s;
+  }
+  input:focus, textarea:focus, select:focus{border-color:var(--green-dim);box-shadow:0 0 0 3px var(--green-glow);}
+  textarea{resize:vertical;min-height:64px;}
+
+  #submitBtn, .btn-primary{
+    width:100%;margin-top:20px;padding:15px;border:none;border-radius:12px;
+    background:linear-gradient(145deg,var(--green),var(--green-dim));
+    color:#0d1f16;font-size:15px;font-weight:700;letter-spacing:0.2px;cursor:pointer;font-family:'Space Grotesk';transition:.15s;
+  }
+  #submitBtn:active, .btn-primary:active{filter:brightness(0.95);}
+
+  #statusMsg{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:13px;display:none;}
+  #statusMsg.ok{display:block;background:rgba(76,175,125,0.12);border:1px solid rgba(76,175,125,0.4);color:#8fd6ac;}
+  #statusMsg.err{display:block;background:var(--red-glow);border:1px solid rgba(226,96,79,0.4);color:#f0a099;}
+
+  .chips{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+  .chip{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);
+    padding:7px 13px;border-radius:20px;font-size:12px;font-family:'IBM Plex Mono';cursor:pointer;transition:.15s;
+  }
+  .chip.active{background:var(--green);border-color:transparent;color:#0d1f16;font-weight:600;}
+
+  .item{padding:13px 0;border-bottom:1px solid var(--line);}
+  .item:last-child{border-bottom:none;}
+  .item-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .item-title{font-weight:700;font-size:14.5px;font-family:'Space Grotesk';}
+  .item-cliente{font-size:11.5px;color:var(--green);font-family:'IBM Plex Mono';margin-top:2px;}
+  .item-when{font-size:12px;color:var(--ink-low);font-family:'IBM Plex Mono';white-space:nowrap;}
+  .item-sub{font-size:13px;color:var(--ink-dim);margin-top:5px;}
+  .item-note{font-size:12.5px;color:var(--ink);margin-top:5px;line-height:1.4;}
+  .item-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .item-actions button{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);
+    padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;transition:.15s;font-family:'Inter';
+  }
+  .item-actions button:hover{border-color:var(--green-dim);color:var(--ink);}
+  .item-actions button.danger:hover{border-color:var(--red);color:#f0a099;}
+  .empty-hint{color:var(--ink-low);font-size:13px;text-align:center;padding:22px 0;}
+
+  .badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:0.3px;text-transform:uppercase;font-family:'IBM Plex Mono';}
+  .badge.programmato{background:rgba(91,155,213,0.15);color:var(--blue);}
+  .badge.completato{background:rgba(76,175,125,0.15);color:var(--green);}
+  .badge.mancato{background:var(--red-glow);color:#f0a099;}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+  .kpi{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 10px;text-align:center;}
+  .kpi-val{font-family:'Space Grotesk';font-size:22px;font-weight:700;}
+  .kpi-lbl{font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:0.4px;margin-top:3px;}
+
+  .pct-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12.5px;}
+  .pct-row span:first-child{width:84px;color:var(--ink-dim);flex-shrink:0;}
+  .pct-row span:last-child{width:42px;text-align:right;font-family:'IBM Plex Mono';color:var(--ink);flex-shrink:0;}
+  .pct-track{flex:1;height:8px;background:var(--panel-2);border-radius:6px;overflow:hidden;}
+  .pct-fill{height:100%;border-radius:6px;background:var(--blue);}
+  .pct-fill.completato{background:var(--green);}
+  .pct-fill.mancato{background:var(--red);}
+
+  .chart-bars{display:flex;align-items:flex-end;gap:12px;height:170px;overflow-x:auto;padding:4px 2px 6px;}
+  .chart-col{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:36px;flex-shrink:0;}
+  .chart-val{font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-dim);}
+  .chart-bar{width:24px;border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,var(--green),var(--green-dim));min-height:4px;}
+  .chart-label{font-family:'IBM Plex Mono';font-size:9.5px;color:var(--ink-low);white-space:nowrap;}
+
+  .cliente-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12.5px;}
+  .cliente-row .name{width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);}
+  .cliente-row .track{flex:1;height:8px;background:var(--panel-2);border-radius:6px;overflow:hidden;}
+  .cliente-row .fill{height:100%;background:linear-gradient(90deg,var(--green-dim),var(--green));border-radius:6px;}
+  .cliente-row .n{width:24px;text-align:right;font-family:'IBM Plex Mono';color:var(--ink-dim);flex-shrink:0;}
+
+  table.stat-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px;}
+  table.stat-table th, table.stat-table td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;}
+  table.stat-table th{color:var(--ink-dim);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;}
+  table.stat-table td{color:var(--ink);}
+  .table-wrap{overflow-x:auto;}
+  .note-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-dim) !important;}
+
+  #exportBtn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);
+    font-size:12px;padding:9px 15px;border-radius:10px;cursor:pointer;transition:.15s;font-family:'IBM Plex Mono';white-space:nowrap;
+  }
+  #exportBtn:hover{border-color:var(--green);color:var(--green);}
+
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(6,11,22,0.72);z-index:50;
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;width:min(440px,100%);max-height:86vh;overflow-y:auto;}
+  .modal h3{margin:0 0 16px;font-family:'Space Grotesk';font-size:15px;color:var(--green);}
+  .modal-actions{display:flex;gap:10px;margin-top:18px;}
+  .modal-actions button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);font-size:13.5px;cursor:pointer;font-family:'Inter';}
+  .modal-actions button.confirm{background:linear-gradient(145deg,var(--green),var(--green-dim));border-color:transparent;color:#0d1f16;font-weight:700;}
+
+  .footer-note{text-align:center;font-size:11px;color:var(--ink-low);margin-top:8px;font-family:'IBM Plex Mono';}
+
+  /* ============ LAYOUT DESKTOP ============ */
+  @media (min-width: 980px){
+    .wrap{max-width:1180px;padding:0 24px;}
+
+    #view-appuntamenti.active{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start;}
+    #view-appuntamenti .card:first-child{position:sticky;top:20px;}
+
+    #view-statistiche.active{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;}
+    #view-statistiche .card:nth-child(1),
+    #view-statistiche .card:nth-child(4),
+    #view-statistiche .card:nth-child(5){grid-column:1 / -1;}
+
+    .chart-bars{height:190px;}
+  }
+
+  /* ============ LOGIN ============ */
+  #appRoot{display:none;}
+  body.authed #appRoot{display:block;}
+  body.authed #loginScreen{display:none;}
+  #loginScreen{
+    position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 600px at 15% -10%, rgba(76,175,125,0.08), transparent 60%), linear-gradient(180deg,#060b16,var(--bg));
+    padding:20px;
+  }
+  .login-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;width:min(360px,100%);}
+  .login-box .logo{margin-bottom:16px;}
+  .login-box h2{margin:0 0 4px;font-family:'Space Grotesk';font-size:18px;}
+  .login-box p{margin:0 0 20px;font-size:12.5px;color:var(--ink-dim);}
+  #loginError{margin-top:14px;padding:11px 13px;border-radius:10px;font-size:13px;display:none;background:var(--red-glow);border:1px solid rgba(226,96,79,0.4);color:#f0a099;}
+  .header-user{display:flex;align-items:center;gap:10px;}
+  #userEmailLabel{font-size:11.5px;color:var(--ink-low);font-family:'IBM Plex Mono';}
+  #logoutBtn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);
+    font-size:12px;padding:8px 13px;border-radius:20px;cursor:pointer;transition:.15s;
+  }
+  #logoutBtn:hover{border-color:var(--red);color:#f0a099;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12.5 L9.5 18 L20 6" stroke="#0d1f16" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h2>Assistente Appuntamenti</h2>
+    <p>Accesso riservato · Viping</p>
+    <form id="loginForm">
+      <label for="loginEmail">Email</label>
+      <input type="text" id="loginEmail" autocomplete="username" required>
+      <label for="loginPassword">Password</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" required>
+      <button type="submit" class="btn-primary" id="loginBtn">Accedi</button>
+    </form>
+    <div id="loginError"></div>
+  </div>
+</div>
+
+<div class="wrap" id="appRoot">
+
+  <header>
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12.5 L9.5 18 L20 6" stroke="#0d1f16" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div>
+        <h1>Assistente Appuntamenti</h1>
+        <p>Viping · promemoria e statistiche visite</p>
+      </div>
+    </div>
+    <div class="header-user">
+      <span id="userEmailLabel"></span>
+      <button id="notifyBtn">🔔 Attiva notifiche</button>
+      <button id="logoutBtn">Esci</button>
+    </div>
+  </header>
+
+  <div id="banners"></div>
+
+  <div class="tabs">
+    <div class="tab-btn active" data-view="appuntamenti">Appuntamenti</div>
+    <div class="tab-btn" data-view="statistiche">Statistiche</div>
+  </div>
+
+  <!-- ============ VIEW: APPUNTAMENTI ============ -->
+  <div class="view active" id="view-appuntamenti">
+
+    <div class="card">
+      <h2>Nuovo appuntamento</h2>
+      <form id="appForm">
+        <label for="fTitolo">Titolo</label>
+        <input type="text" id="fTitolo" placeholder="Es. Visita cliente, sopralluogo..." required>
+
+        <label for="fCliente">Cliente / azienda <span style="color:var(--ink-low);text-transform:none;letter-spacing:0;">(opzionale, per le statistiche)</span></label>
+        <input type="text" id="fCliente" placeholder="Es. Rossi Spa">
+
+        <div class="row2">
+          <div>
+            <label for="fData">Data</label>
+            <input type="date" id="fData" required>
+          </div>
+          <div>
+            <label for="fOra">Ora</label>
+            <input type="time" id="fOra" required>
+          </div>
+        </div>
+
+        <label for="fLuogo">Luogo</label>
+        <input type="text" id="fLuogo" placeholder="Indirizzo o sede">
+
+        <div class="row2">
+          <div>
+            <label for="fReferente">Referente</label>
+            <input type="text" id="fReferente" placeholder="Nome e cognome">
+          </div>
+          <div>
+            <label for="fEmail">Email</label>
+            <input type="text" id="fEmail" placeholder="nome@azienda.it">
+          </div>
+        </div>
+
+        <div class="row2">
+          <div>
+            <label for="fCellulare">Cellulare</label>
+            <input type="text" id="fCellulare" placeholder="333 1234567">
+          </div>
+          <div>
+            <label for="fNumeroDiretto">Numero diretto</label>
+            <input type="text" id="fNumeroDiretto" placeholder="Es. interno ufficio">
+          </div>
+        </div>
+
+        <label for="fPromemoria">Preavviso promemoria (minuti prima)</label>
+        <input type="number" id="fPromemoria" value="60" min="0" step="5">
+
+        <label for="fNote">Note</label>
+        <textarea id="fNote" placeholder="Dettagli utili per l'appuntamento..."></textarea>
+
+        <button type="submit" id="submitBtn">Salva appuntamento</button>
+      </form>
+      <div id="statusMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Elenco appuntamenti</h2></div>
+      <div class="chips" id="filterChips">
+        <div class="chip active" data-filter="prossimi">Prossimi</div>
+        <div class="chip" data-filter="completati">Completati</div>
+        <div class="chip" data-filter="mancati">Mancati</div>
+        <div class="chip" data-filter="tutti">Tutti</div>
+      </div>
+      <div id="listaAppuntamenti"><div class="empty-hint">Caricamento...</div></div>
+    </div>
+
+  </div>
+
+  <!-- ============ VIEW: STATISTICHE ============ -->
+  <div class="view" id="view-statistiche">
+
+    <div class="card">
+      <h2>Filtro periodo</h2>
+      <div class="row2">
+        <div>
+          <label for="statDa">Da</label>
+          <input type="date" id="statDa">
+        </div>
+        <div>
+          <label for="statA">A</label>
+          <input type="date" id="statA">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn-primary" id="applyFilterBtn" style="margin-top:0;">Applica filtro</button>
+        <button id="exportBtn">⬇ Esporta Excel</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Riepilogo</h2>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val" id="kpiCompletati" style="color:var(--green);">0</div><div class="kpi-lbl">Completati</div></div>
+        <div class="kpi"><div class="kpi-val" id="kpiProgrammati" style="color:var(--blue);">0</div><div class="kpi-lbl">Programmati</div></div>
+        <div class="kpi"><div class="kpi-val" id="kpiMancati" style="color:var(--red);">0</div><div class="kpi-lbl">Mancati</div></div>
+      </div>
+      <div class="pct-row"><span>Completati</span><div class="pct-track"><div class="pct-fill completato" id="pctCompletati" style="width:0%;"></div></div><span id="pctCompletatiVal">0%</span></div>
+      <div class="pct-row"><span>Programmati</span><div class="pct-track"><div class="pct-fill" id="pctProgrammati" style="width:0%;"></div></div><span id="pctProgrammatiVal">0%</span></div>
+      <div class="pct-row"><span>Mancati</span><div class="pct-track"><div class="pct-fill mancato" id="pctMancati" style="width:0%;"></div></div><span id="pctMancatiVal">0%</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Andamento completati</h2>
+        <div class="chips" id="chartModeChips" style="margin:0;">
+          <div class="chip active" data-mode="settimana">Settimana</div>
+          <div class="chip" data-mode="mese">Mese</div>
+          <div class="chip" data-mode="anno">Anno</div>
+        </div>
+      </div>
+      <div class="chart-bars" id="chartBars"></div>
+    </div>
+
+    <div class="card">
+      <h2>Clienti più visitati</h2>
+      <div id="listaClienti"><div class="empty-hint">Nessun dato disponibile.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Elenco dettagliato periodo</h2>
+      <div class="table-wrap">
+        <table class="stat-table" id="statTable">
+          <thead><tr><th>Data</th><th>Titolo</th><th>Cliente</th><th>Stato</th><th>Note</th></tr></thead>
+          <tbody id="statTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-note">Assistente Appuntamenti · Viping — sync in tempo reale su Firestore</div>
+</div>
+
+<!-- ============ MODALE (modifica / completa) ============ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+  onSnapshot, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC12Mt3dFIunD1iIJE6tzrbFhmPmqMHOPY",
+  authDomain: "viping-turni.firebaseapp.com",
+  projectId: "viping-turni",
+  storageBucket: "viping-turni.appspot.com",
+  messagingSenderId: "946156068238",
+  appId: "1:946156068238:web:0de3a96722c972cd3358df"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
+const collRef = collection(db, "appuntamenti");
+
+let appuntamenti = [];
+let currentFilter = 'prossimi';
+let chartMode = 'settimana';
+let statRange = { from: null, to: null };
+
+// ============ HELPERS ============
+function fmtDataOra(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('it-IT', { weekday:'short', day:'2-digit', month:'short' }) + ' · ' +
+         d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function isMancato(a){
+  return a.stato === 'programmato' && new Date(a.dataOra) < new Date() && !(a.impressioni && a.impressioni.trim());
+}
+function isFuturoProgrammato(a){
+  return a.stato === 'programmato' && new Date(a.dataOra) >= new Date();
+}
+function statoLabel(a){
+  if(a.stato === 'completato') return 'Completato';
+  if(isMancato(a)) return 'Mancato';
+  return 'Programmato';
+}
+function statoBadgeClass(a){
+  if(a.stato === 'completato') return 'completato';
+  if(isMancato(a)) return 'mancato';
+  return 'programmato';
+}
+function parseCliente(a){
+  if(a.cliente && a.cliente.trim()) return a.cliente.trim();
+  const words = (a.titolo || '').trim().split(/\s+/).slice(0,2).join(' ');
+  return words || '(senza titolo)';
+}
+function escapeHtml(s){
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function contactLine(a){
+  const parts = [];
+  if(a.referente) parts.push(`👤 ${escapeHtml(a.referente)}`);
+  if(a.email) parts.push(`✉ ${escapeHtml(a.email)}`);
+  if(a.cellulare) parts.push(`📱 ${escapeHtml(a.cellulare)}`);
+  if(a.numeroDiretto) parts.push(`☎ ${escapeHtml(a.numeroDiretto)}`);
+  return parts.length ? `<div class="item-sub">${parts.join(' &nbsp;·&nbsp; ')}</div>` : '';
+}
+
+// ============ LOGIN / FIRESTORE SYNC ============
+let unsubscribeSnapshot = null;
+
+function startSync(){
+  if(unsubscribeSnapshot) return;
+  unsubscribeSnapshot = onSnapshot(query(collRef, orderBy('dataOra', 'asc')), (snap) => {
+    appuntamenti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderLista();
+    renderStatistiche();
+    checkReminders();
+  }, (err) => {
+    document.getElementById('listaAppuntamenti').innerHTML = `<div class="empty-hint">Errore di connessione a Firestore: ${escapeHtml(err.message)}</div>`;
+  });
+}
+function stopSync(){
+  if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+  appuntamenti = [];
+}
+
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    document.body.classList.add('authed');
+    document.getElementById('userEmailLabel').textContent = user.email;
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('loginForm').reset();
+    startSync();
+  } else {
+    document.body.classList.remove('authed');
+    stopSync();
+  }
+});
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const loginBtn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  loginBtn.disabled = true;
+  try{
+    await signInWithEmailAndPassword(auth, email, password);
+  }catch(err){
+    errEl.textContent = 'Accesso non riuscito: email o password errati.';
+    errEl.style.display = 'block';
+  }
+  loginBtn.disabled = false;
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+// ============ FORM: NUOVO APPUNTAMENTO ============
+document.getElementById('appForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const titolo = document.getElementById('fTitolo').value.trim();
+  const cliente = document.getElementById('fCliente').value.trim();
+  const data = document.getElementById('fData').value;
+  const ora = document.getElementById('fOra').value;
+  const luogo = document.getElementById('fLuogo').value.trim();
+  const referente = document.getElementById('fReferente').value.trim();
+  const email = document.getElementById('fEmail').value.trim();
+  const cellulare = document.getElementById('fCellulare').value.trim();
+  const numeroDiretto = document.getElementById('fNumeroDiretto').value.trim();
+  const promemoriaMinuti = parseInt(document.getElementById('fPromemoria').value, 10) || 0;
+  const note = document.getElementById('fNote').value.trim();
+  const statusEl = document.getElementById('statusMsg');
+
+  if(!titolo || !data || !ora){
+    statusEl.className = 'err'; statusEl.textContent = 'Compila titolo, data e ora.'; return;
+  }
+  const dataOra = new Date(`${data}T${ora}`).toISOString();
+
+  try{
+    await addDoc(collRef, {
+      titolo, cliente, dataOra, luogo, referente, email, cellulare, numeroDiretto, promemoriaMinuti, note,
+      impressioni: '', stato: 'programmato', creatoIl: new Date().toISOString(), notificato: false
+    });
+    document.getElementById('appForm').reset();
+    document.getElementById('fPromemoria').value = 60;
+    statusEl.className = 'ok'; statusEl.textContent = 'Appuntamento salvato.';
+    setTimeout(() => { statusEl.className = ''; statusEl.textContent = ''; }, 3000);
+  }catch(err){
+    statusEl.className = 'err'; statusEl.textContent = 'Errore nel salvataggio: ' + err.message;
+  }
+});
+
+// ============ TABS PRINCIPALI ============
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+  });
+});
+
+// ============ FILTRI ELENCO ============
+document.querySelectorAll('#filterChips .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#filterChips .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderLista();
+  });
+});
+
+function filteredAppuntamenti(){
+  const list = [...appuntamenti];
+  if(currentFilter === 'prossimi') return list.filter(isFuturoProgrammato).sort((a,b) => new Date(a.dataOra) - new Date(b.dataOra));
+  if(currentFilter === 'completati') return list.filter(a => a.stato === 'completato').sort((a,b) => new Date(b.dataOra) - new Date(a.dataOra));
+  if(currentFilter === 'mancati') return list.filter(isMancato).sort((a,b) => new Date(b.dataOra) - new Date(a.dataOra));
+  return list.sort((a,b) => new Date(b.dataOra) - new Date(a.dataOra));
+}
+
+function renderLista(){
+  const list = filteredAppuntamenti();
+  const el = document.getElementById('listaAppuntamenti');
+  if(!list.length){ el.innerHTML = '<div class="empty-hint">Nessun appuntamento in questa vista.</div>'; return; }
+  el.innerHTML = list.map(a => `
+    <div class="item">
+      <div class="item-top">
+        <div>
+          <span class="badge ${statoBadgeClass(a)}">${statoLabel(a)}</span>
+          <div class="item-title">${escapeHtml(a.titolo)}</div>
+          ${a.cliente ? `<div class="item-cliente">${escapeHtml(a.cliente)}</div>` : ''}
+        </div>
+        <div class="item-when">${fmtDataOra(a.dataOra)}</div>
+      </div>
+      ${a.luogo ? `<div class="item-sub">📍 ${escapeHtml(a.luogo)}</div>` : ''}
+      ${contactLine(a)}
+      ${a.note ? `<div class="item-note">${escapeHtml(a.note)}</div>` : ''}
+      ${a.stato === 'completato' && a.impressioni ? `<div class="item-note">💬 ${escapeHtml(a.impressioni)}</div>` : ''}
+      <div class="item-actions">
+        ${a.stato === 'programmato' ? `<button data-action="complete" data-id="${a.id}">✓ Segna completato</button>` : ''}
+        ${a.stato === 'programmato' ? `<button data-action="edit" data-id="${a.id}">✎ Modifica</button>` : ''}
+        ${a.stato === 'completato' ? `<button data-action="impressioni" data-id="${a.id}">💬 Impressioni</button>` : ''}
+        ${a.stato === 'completato' ? `<button data-action="reopen" data-id="${a.id}">↺ Riapri</button>` : ''}
+        <button data-action="delete" data-id="${a.id}" class="danger">🗑 Elimina</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('listaAppuntamenti').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  const a = appuntamenti.find(x => x.id === id);
+  if(!a) return;
+  if(btn.dataset.action === 'complete') openCompleteModal(a);
+  if(btn.dataset.action === 'edit') openEditModal(a);
+  if(btn.dataset.action === 'impressioni') openImpressioniModal(a);
+  if(btn.dataset.action === 'reopen') reopenAppuntamento(a);
+  if(btn.dataset.action === 'delete') deleteAppuntamento(a);
+});
+
+async function reopenAppuntamento(a){
+  await updateDoc(doc(collRef, a.id), { stato: 'programmato', impressioni: '', notificato: true });
+}
+async function deleteAppuntamento(a){
+  if(!confirm(`Eliminare l'appuntamento "${a.titolo}"?`)) return;
+  await deleteDoc(doc(collRef, a.id));
+}
+
+// ============ MODALE: COMPLETA / MODIFICA ============
+const modalOverlay = document.getElementById('modalOverlay');
+const modalBox = document.getElementById('modalBox');
+function closeModal(){ modalOverlay.classList.remove('open'); modalBox.innerHTML = ''; }
+modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) closeModal(); });
+
+function openCompleteModal(a){
+  modalBox.innerHTML = `
+    <h3>Segna come completato</h3>
+    <label for="mImpressioni">Impressioni / esito appuntamento</label>
+    <textarea id="mImpressioni" placeholder="Come è andato l'appuntamento...">${escapeHtml(a.impressioni)}</textarea>
+    <div class="modal-actions">
+      <button id="mCancel">Annulla</button>
+      <button id="mConfirm" class="confirm">Conferma</button>
+    </div>
+  `;
+  modalOverlay.classList.add('open');
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('mConfirm').addEventListener('click', async () => {
+    const impressioni = document.getElementById('mImpressioni').value.trim();
+    await updateDoc(doc(collRef, a.id), { stato: 'completato', impressioni });
+    closeModal();
+  });
+}
+
+function openImpressioniModal(a){
+  modalBox.innerHTML = `
+    <h3>Impressioni post-visita</h3>
+    <label for="mImpressioni2">${escapeHtml(a.titolo)} · ${fmtDataOra(a.dataOra)}</label>
+    <textarea id="mImpressioni2" placeholder="Come è andata la visita...">${escapeHtml(a.impressioni)}</textarea>
+    <div class="modal-actions">
+      <button id="mCancel">Annulla</button>
+      <button id="mConfirm" class="confirm">Salva</button>
+    </div>
+  `;
+  modalOverlay.classList.add('open');
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('mConfirm').addEventListener('click', async () => {
+    const impressioni = document.getElementById('mImpressioni2').value.trim();
+    await updateDoc(doc(collRef, a.id), { impressioni });
+    closeModal();
+  });
+}
+
+function openEditModal(a){
+  const d = new Date(a.dataOra);
+  const dataVal = d.toISOString().slice(0,10);
+  const oraVal = d.toTimeString().slice(0,5);
+  modalBox.innerHTML = `
+    <h3>Modifica appuntamento</h3>
+    <label>Titolo</label>
+    <input type="text" id="mTitolo" value="${escapeHtml(a.titolo)}">
+    <label>Cliente / azienda</label>
+    <input type="text" id="mCliente" value="${escapeHtml(a.cliente || '')}">
+    <div class="row2">
+      <div><label>Data</label><input type="date" id="mData" value="${dataVal}"></div>
+      <div><label>Ora</label><input type="time" id="mOra" value="${oraVal}"></div>
+    </div>
+    <label>Luogo</label>
+    <input type="text" id="mLuogo" value="${escapeHtml(a.luogo || '')}">
+    <div class="row2">
+      <div><label>Referente</label><input type="text" id="mReferente" value="${escapeHtml(a.referente || '')}"></div>
+      <div><label>Email</label><input type="text" id="mEmail" value="${escapeHtml(a.email || '')}"></div>
+    </div>
+    <div class="row2">
+      <div><label>Cellulare</label><input type="text" id="mCellulare" value="${escapeHtml(a.cellulare || '')}"></div>
+      <div><label>Numero diretto</label><input type="text" id="mNumeroDiretto" value="${escapeHtml(a.numeroDiretto || '')}"></div>
+    </div>
+    <label>Preavviso promemoria (minuti)</label>
+    <input type="number" id="mPromemoria" value="${a.promemoriaMinuti || 0}" min="0" step="5">
+    <label>Note</label>
+    <textarea id="mNote">${escapeHtml(a.note || '')}</textarea>
+    <div class="modal-actions">
+      <button id="mCancel">Annulla</button>
+      <button id="mConfirm" class="confirm">Salva</button>
+    </div>
+  `;
+  modalOverlay.classList.add('open');
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('mConfirm').addEventListener('click', async () => {
+    const titolo = document.getElementById('mTitolo').value.trim();
+    const cliente = document.getElementById('mCliente').value.trim();
+    const data = document.getElementById('mData').value;
+    const ora = document.getElementById('mOra').value;
+    const luogo = document.getElementById('mLuogo').value.trim();
+    const referente = document.getElementById('mReferente').value.trim();
+    const email = document.getElementById('mEmail').value.trim();
+    const cellulare = document.getElementById('mCellulare').value.trim();
+    const numeroDiretto = document.getElementById('mNumeroDiretto').value.trim();
+    const promemoriaMinuti = parseInt(document.getElementById('mPromemoria').value, 10) || 0;
+    const note = document.getElementById('mNote').value.trim();
+    if(!titolo || !data || !ora) return;
+    const dataOra = new Date(`${data}T${ora}`).toISOString();
+    await updateDoc(doc(collRef, a.id), {
+      titolo, cliente, dataOra, luogo, referente, email, cellulare, numeroDiretto, promemoriaMinuti, note, notificato: false
+    });
+    closeModal();
+  });
+}
+
+// ============ PROMEMORIA / NOTIFICHE ============
+const notifyBtn = document.getElementById('notifyBtn');
+function refreshNotifyBtn(){
+  if('Notification' in window && Notification.permission === 'granted'){
+    notifyBtn.textContent = '🔔 Notifiche attive'; notifyBtn.classList.add('on');
+  } else {
+    notifyBtn.textContent = '🔔 Attiva notifiche'; notifyBtn.classList.remove('on');
+  }
+}
+notifyBtn.addEventListener('click', () => {
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'default'){
+    Notification.requestPermission().then(refreshNotifyBtn);
+  } else if(Notification.permission === 'denied'){
+    alert('Le notifiche sono bloccate per questo sito. Sbloccale dalle impostazioni del browser per riceverle.');
+  }
+});
+refreshNotifyBtn();
+
+function showBanner(title, body, id){
+  const box = document.getElementById('banners');
+  const el = document.createElement('div');
+  el.className = 'banner';
+  el.innerHTML = `<div class="txt"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span></div><button aria-label="Chiudi">✕</button>`;
+  el.querySelector('button').addEventListener('click', () => el.remove());
+  box.appendChild(el);
+}
+
+async function checkReminders(){
+  const now = Date.now();
+  for(const a of appuntamenti){
+    if(a.stato !== 'programmato' || a.notificato) continue;
+    const t = new Date(a.dataOra).getTime();
+    const reminderT = t - (a.promemoriaMinuti || 0) * 60000;
+    if(reminderT <= now){
+      const scaduto = t <= now;
+      const title = scaduto ? 'Appuntamento in corso o scaduto' : 'Promemoria appuntamento';
+      const body = `${a.titolo}${a.cliente ? ' — ' + a.cliente : ''} · ${fmtDataOra(a.dataOra)}${a.luogo ? ' · ' + a.luogo : ''}`;
+      showBanner(title, body);
+      if('Notification' in window && Notification.permission === 'granted'){
+        try{ new Notification('Viping · ' + title, { body, tag: 'appuntamento-' + a.id }); }catch(e){}
+      }
+      await updateDoc(doc(collRef, a.id), { notificato: true });
+    }
+  }
+}
+setInterval(checkReminders, 20000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) checkReminders(); });
+
+// ============ STATISTICHE ============
+document.getElementById('applyFilterBtn').addEventListener('click', () => {
+  const da = document.getElementById('statDa').value;
+  const a = document.getElementById('statA').value;
+  statRange.from = da ? new Date(da + 'T00:00:00') : null;
+  statRange.to = a ? new Date(a + 'T23:59:59') : null;
+  renderStatistiche();
+});
+
+document.querySelectorAll('#chartModeChips .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#chartModeChips .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    chartMode = chip.dataset.mode;
+    renderStatistiche();
+  });
+});
+
+function inRange(a){
+  const d = new Date(a.dataOra);
+  if(statRange.from && d < statRange.from) return false;
+  if(statRange.to && d > statRange.to) return false;
+  return true;
+}
+
+function isoWeekKey(d){
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const week = 1 + Math.round(((date - firstThursday) / 86400000 - 3 + (firstThursday.getUTCDay() + 6) % 7) / 7);
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+function groupKey(d, mode){
+  if(mode === 'settimana') return isoWeekKey(d);
+  if(mode === 'mese') return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return `${d.getFullYear()}`;
+}
+function chartLabel(key, mode){
+  if(mode === 'settimana'){ const [y, w] = key.split('-W'); return `S${w}/${y.slice(2)}`; }
+  if(mode === 'mese'){ const [y, m] = key.split('-'); return new Date(y, m - 1, 1).toLocaleDateString('it-IT', { month: 'short' }) + ' ' + y.slice(2); }
+  return key;
+}
+
+function renderStatistiche(){
+  const list = appuntamenti.filter(inRange);
+  const completati = list.filter(a => a.stato === 'completato');
+  const mancati = list.filter(isMancato);
+  const programmati = list.filter(isFuturoProgrammato);
+  const totale = completati.length + mancati.length + programmati.length;
+  const pct = n => totale ? Math.round((n / totale) * 100) : 0;
+
+  document.getElementById('kpiCompletati').textContent = completati.length;
+  document.getElementById('kpiProgrammati').textContent = programmati.length;
+  document.getElementById('kpiMancati').textContent = mancati.length;
+
+  document.getElementById('pctCompletati').style.width = pct(completati.length) + '%';
+  document.getElementById('pctCompletatiVal').textContent = pct(completati.length) + '%';
+  document.getElementById('pctProgrammati').style.width = pct(programmati.length) + '%';
+  document.getElementById('pctProgrammatiVal').textContent = pct(programmati.length) + '%';
+  document.getElementById('pctMancati').style.width = pct(mancati.length) + '%';
+  document.getElementById('pctMancatiVal').textContent = pct(mancati.length) + '%';
+
+  // grafico andamento completati
+  const buckets = new Map();
+  completati.forEach(a => {
+    const k = groupKey(new Date(a.dataOra), chartMode);
+    buckets.set(k, (buckets.get(k) || 0) + 1);
+  });
+  const sorted = [...buckets.entries()].sort((x, y) => x[0] < y[0] ? -1 : 1).slice(-14);
+  const max = Math.max(1, ...sorted.map(b => b[1]));
+  const chartEl = document.getElementById('chartBars');
+  chartEl.innerHTML = sorted.length ? sorted.map(([k, v]) => `
+    <div class="chart-col">
+      <div class="chart-val">${v}</div>
+      <div class="chart-bar" style="height:${Math.max(6, Math.round(v / max * 130))}px;"></div>
+      <div class="chart-label">${chartLabel(k, chartMode)}</div>
+    </div>
+  `).join('') : '<div class="empty-hint">Nessun appuntamento completato nel periodo.</div>';
+
+  // clienti più visitati
+  const clientiMap = new Map();
+  list.forEach(a => { const k = parseCliente(a); clientiMap.set(k, (clientiMap.get(k) || 0) + 1); });
+  const topClienti = [...clientiMap.entries()].sort((x, y) => y[1] - x[1]).slice(0, 10);
+  const maxCliente = Math.max(1, ...topClienti.map(c => c[1]));
+  const clientiEl = document.getElementById('listaClienti');
+  clientiEl.innerHTML = topClienti.length ? topClienti.map(([nome, n]) => `
+    <div class="cliente-row">
+      <div class="name" title="${escapeHtml(nome)}">${escapeHtml(nome)}</div>
+      <div class="track"><div class="fill" style="width:${Math.round(n / maxCliente * 100)}%;"></div></div>
+      <div class="n">${n}</div>
+    </div>
+  `).join('') : '<div class="empty-hint">Nessun dato disponibile nel periodo.</div>';
+
+  // tabella dettagliata
+  const tbody = document.getElementById('statTableBody');
+  const sortedList = [...list].sort((x, y) => new Date(y.dataOra) - new Date(x.dataOra));
+  tbody.innerHTML = sortedList.length ? sortedList.map(a => `
+    <tr>
+      <td>${fmtDataOra(a.dataOra)}</td>
+      <td>${escapeHtml(a.titolo)}</td>
+      <td>${escapeHtml(parseCliente(a))}</td>
+      <td><span class="badge ${statoBadgeClass(a)}">${statoLabel(a)}</span></td>
+      <td class="note-cell" title="${escapeHtml(a.note)}">${escapeHtml(a.note)}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="5" class="empty-hint">Nessun appuntamento nel periodo selezionato.</td></tr>';
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const list = appuntamenti.filter(inRange).sort((x, y) => new Date(x.dataOra) - new Date(y.dataOra));
+  if(!list.length){ alert('Nessun appuntamento da esportare nel periodo selezionato.'); return; }
+  const rows = list.map(a => ({
+    Data: fmtDataOra(a.dataOra),
+    Titolo: a.titolo,
+    Cliente: parseCliente(a),
+    Luogo: a.luogo || '',
+    Referente: a.referente || '',
+    Email: a.email || '',
+    Cellulare: a.cellulare || '',
+    'Numero diretto': a.numeroDiretto || '',
+    Stato: statoLabel(a),
+    Note: a.note || '',
+    Impressioni: a.impressioni || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch: 16 }, { wch: 28 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 30 }, { wch: 30 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Appuntamenti');
+  XLSX.writeFile(wb, `appuntamenti_${todayStr()}.xlsx`);
+});
+</script>
+</body>
+</html>

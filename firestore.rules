@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// Regole Firestore per il progetto "viping-turni".
+// La collection "appuntamenti" contiene dati personali dei clienti (email, telefoni)
+// ed è protetta da Firebase Authentication: solo utenti autenticati (login email/password
+// creato in console Firebase) possono leggere o scrivere.
+// Le altre collection non hanno un sistema di login nella relativa app, quindi restano
+// aperte come oggi (nessuna regressione per gli strumenti esistenti).
+// Elenco esplicito delle collection in uso, non wildcard: qualsiasi altro path
+// del database viene negato di default, e le regole non hanno scadenza
+// (a differenza della modalità test di default che scade dopo 30 giorni).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /appuntamenti/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /ricevimento_merci/{docId} {
+      allow read, write: if true;
+    }
+
+    match /fine_missione_muletto/{docId} {
+      allow read, write: if true;
+    }
+
+    match /turni_stato/{docId} {
+      allow read, write: if true;
+    }
+
+    match /turni_log/{docId} {
+      allow read, write: if true;
+    }
+
+    match /turni_plan/{docId} {
+      allow read, write: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
