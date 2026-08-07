@@ -621,11 +621,15 @@ document.getElementById('listaAppuntamenti').addEventListener('click', (e) => {
 });
 
 async function reopenAppuntamento(a){
-  await updateDoc(doc(collRef, a.id), { stato: 'programmato', impressioni: '', notificato: true });
+  try{
+    await updateDoc(doc(collRef, a.id), { stato: 'programmato', impressioni: '', notificato: true });
+  }catch(err){ alert('Errore nel salvataggio: ' + err.message); }
 }
 async function deleteAppuntamento(a){
   if(!confirm(`Eliminare l'appuntamento "${a.titolo}"?`)) return;
-  await deleteDoc(doc(collRef, a.id));
+  try{
+    await deleteDoc(doc(collRef, a.id));
+  }catch(err){ alert('Errore nell\'eliminazione: ' + err.message); }
 }
 
 // ============ MODALE: COMPLETA / MODIFICA ============
@@ -648,8 +652,10 @@ function openCompleteModal(a){
   document.getElementById('mCancel').addEventListener('click', closeModal);
   document.getElementById('mConfirm').addEventListener('click', async () => {
     const impressioni = document.getElementById('mImpressioni').value.trim();
-    await updateDoc(doc(collRef, a.id), { stato: 'completato', impressioni });
-    closeModal();
+    try{
+      await updateDoc(doc(collRef, a.id), { stato: 'completato', impressioni });
+      closeModal();
+    }catch(err){ alert('Errore nel salvataggio: ' + err.message); }
   });
 }
 
@@ -667,8 +673,10 @@ function openImpressioniModal(a){
   document.getElementById('mCancel').addEventListener('click', closeModal);
   document.getElementById('mConfirm').addEventListener('click', async () => {
     const impressioni = document.getElementById('mImpressioni2').value.trim();
-    await updateDoc(doc(collRef, a.id), { impressioni });
-    closeModal();
+    try{
+      await updateDoc(doc(collRef, a.id), { impressioni });
+      closeModal();
+    }catch(err){ alert('Errore nel salvataggio: ' + err.message); }
   });
 }
 
@@ -721,10 +729,12 @@ function openEditModal(a){
     const note = document.getElementById('mNote').value.trim();
     if(!titolo || !data || !ora) return;
     const dataOra = new Date(`${data}T${ora}`).toISOString();
-    await updateDoc(doc(collRef, a.id), {
-      titolo, cliente, dataOra, luogo, referente, email, cellulare, numeroDiretto, promemoriaMinuti, note, notificato: false
-    });
-    closeModal();
+    try{
+      await updateDoc(doc(collRef, a.id), {
+        titolo, cliente, dataOra, luogo, referente, email, cellulare, numeroDiretto, promemoriaMinuti, note, notificato: false
+      });
+      closeModal();
+    }catch(err){ alert('Errore nel salvataggio: ' + err.message); }
   });
 }
 
@@ -770,7 +780,7 @@ async function checkReminders(){
       if('Notification' in window && Notification.permission === 'granted'){
         try{ new Notification('Viping · ' + title, { body, tag: 'appuntamento-' + a.id }); }catch(e){}
       }
-      await updateDoc(doc(collRef, a.id), { notificato: true });
+      try{ await updateDoc(doc(collRef, a.id), { notificato: true }); }catch(e){}
     }
   }
 }
