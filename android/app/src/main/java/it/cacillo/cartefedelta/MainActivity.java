@@ -130,6 +130,12 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** Chiude l'app e la toglie anche dalle app recenti. */
+        @JavascriptInterface
+        public void exitApp() {
+            runOnUiThread(MainActivity.this::finishAndRemoveTask);
+        }
+
         /** Salva il backup: Android chiede all'utente dove metterlo. */
         @JavascriptInterface
         public void saveFile(final String fileName, final String content) {
