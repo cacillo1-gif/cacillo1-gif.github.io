@@ -119,6 +119,9 @@
 <header>
   <div class="top">
     <h1>Carte Fedeltà</h1>
+    <button class="iconbtn" id="btnExit" aria-label="Chiudi app" title="Chiudi app" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </button>
     <button class="iconbtn" id="btnMenu" aria-label="Menu">
       <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
     </button>
@@ -247,6 +250,10 @@
     <button id="btnImport">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg>
       <span>Ripristina backup<small>Carica un file esportato in precedenza</small></span>
+    </button>
+    <button id="btnExitMenu" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      <span>Chiudi app<small>Esce dall'applicazione</small></span>
     </button>
     <button id="btnInstall" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M12 18h.01"/></svg>
@@ -668,6 +675,13 @@ $('fileBackup').addEventListener('change', async (e) => {
 });
 
 // Installazione come app
+// Tasto "Chiudi app": solo nell'app Android (una pagina web non può chiudersi da sola)
+if (inApp && typeof AndroidBridge.exitApp === 'function') {
+  $('btnExit').hidden = false; $('btnExitMenu').hidden = false;
+  $('btnExit').addEventListener('click', () => AndroidBridge.exitApp());
+  $('btnExitMenu').addEventListener('click', () => AndroidBridge.exitApp());
+}
+
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; $('btnInstall').hidden = false; });
 $('btnInstall').addEventListener('click', async () => {

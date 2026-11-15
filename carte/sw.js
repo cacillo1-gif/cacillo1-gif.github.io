@@ -1,5 +1,5 @@
 // Service worker: rende l'app utilizzabile anche senza connessione.
-const CACHE = 'carte-v2';
+const CACHE = 'carte-v3';
 const FILES = [
   './',
   './index.html',
