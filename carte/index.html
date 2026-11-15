@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Carte Fedeltà</title>
+<meta name="theme-color" content="#115e59">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #f1f5f9; --surface: #ffffff; --text: #0f172a; --muted: #64748b;
+    --line: #e2e8f0; --accent: #115e59; --accent-text: #ffffff; --danger: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --muted: #94a3b8;
+            --line: #334155; --accent: #2dd4bf; --accent-text: #042f2e; --danger: #f87171; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--bg);
+    padding: calc(12px + env(safe-area-inset-top)) 16px 10px; }
+  .top { display: flex; align-items: center; gap: 8px; }
+  h1 { font-size: 1.4rem; margin: 0; flex: 1; }
+  .iconbtn { border: 0; background: transparent; width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer; }
+  .iconbtn:active { background: var(--line); }
+  .iconbtn svg { width: 24px; height: 24px; }
+  .search { margin-top: 10px; width: 100%; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--surface); }
+  main { padding: 4px 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .card { aspect-ratio: 1.586; border-radius: 14px; border: 0; padding: 12px; cursor: pointer;
+    display: flex; flex-direction: column; justify-content: space-between; text-align: left;
+    color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.15); position: relative; overflow: hidden; }
+  .card .name { font-weight: 700; font-size: 1.05rem; line-height: 1.2; word-break: break-word;
+    text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+  .card .num { font-size: .78rem; opacity: .85; font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card.light { color: #0f172a; }
+  .card.light .name { text-shadow: none; }
+  .empty { text-align: center; color: var(--muted); padding: 48px 16px; line-height: 1.5; }
+  .empty strong { color: var(--text); display: block; font-size: 1.1rem; margin-bottom: 6px; }
+  .fab { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom));
+    border: 0; border-radius: 18px; background: var(--accent); color: var(--accent-text);
+    padding: 16px 22px; font-weight: 700; font-size: 1rem; display: flex; gap: 8px; align-items: center;
+    box-shadow: 0 6px 16px rgba(0,0,0,.25); cursor: pointer; }
+  .fab svg { width: 22px; height: 22px; }
+
+  /* Fogli / dialoghi */
+  .sheet { position: fixed; inset: 0; z-index: 20; display: none; background: var(--bg);
+    overflow-y: auto; padding: calc(12px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)); }
+  .sheet.open { display: block; }
+  .sheet h2 { margin: 0; font-size: 1.2rem; flex: 1; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin: 14px 0 6px; }
+  .field { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--surface); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px;
+    cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn svg { width: 20px; height: 20px; }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .btn.danger { color: var(--danger); }
+  .btn.block { width: 100%; margin-top: 10px; }
+  .colors { display: flex; flex-wrap: wrap; gap: 10px; }
+  .swatch { width: 38px; height: 38px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; }
+  .swatch.sel { border-color: var(--text); }
+  .hint { font-size: .82rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .preview { margin-top: 14px; background: #fff; border-radius: 12px; padding: 14px; text-align: center; min-height: 60px; }
+  .preview canvas { max-width: 100%; height: auto; }
+  .warn { color: var(--danger); font-size: .85rem; margin-top: 6px; }
+  .queue { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+  /* Vista carta a schermo intero */
+  #view { background: #ffffff; color: #0f172a; text-align: center; }
+  #view .top { color: #0f172a; }
+  #view .vname { font-size: 1.6rem; font-weight: 800; margin: 18px 0 4px; word-break: break-word; }
+  #view .vnote { color: #475569; margin-bottom: 8px; white-space: pre-wrap; }
+  .codebox { margin: 24px auto 12px; padding: 18px 10px; max-width: 560px; }
+  .codebox canvas { width: 100%; height: auto; image-rendering: pixelated; }
+  .codebox.square canvas { width: min(78vw, 360px); }
+  .vnum { font-size: 1.5rem; letter-spacing: .08em; font-variant-numeric: tabular-nums; font-weight: 600;
+    word-break: break-all; user-select: all; }
+  .vhint { color: #64748b; font-size: .85rem; margin-top: 18px; }
+  .vactions { display: flex; gap: 10px; justify-content: center; margin-top: 28px; flex-wrap: wrap; }
+  #view .btn { background: #f1f5f9; border-color: #e2e8f0; color: #0f172a; }
+  #view .btn.danger { color: #b91c1c; }
+
+  /* Scanner */
+  #scan { background: #000; color: #fff; padding: 0; }
+  #scan video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .frame { position: absolute; left: 8%; right: 8%; top: 32%; height: 28%; border: 3px solid #2dd4bf;
+    border-radius: 16px; box-shadow: 0 0 0 9999px rgba(0,0,0,.45); }
+  .scanbar { position: absolute; left: 0; right: 0; top: 0; padding: calc(12px + env(safe-area-inset-top)) 12px 12px;
+    display: flex; align-items: center; gap: 8px; }
+  .scanbar .iconbtn { color: #fff; background: rgba(0,0,0,.4); }
+  .scanmsg { position: absolute; left: 16px; right: 16px; bottom: calc(40px + env(safe-area-inset-bottom));
+    text-align: center; font-size: 1rem; text-shadow: 0 1px 3px #000; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 10px; z-index: 50; font-size: .92rem;
+    opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
+  .toast.show { opacity: 1; }
+  .menu a, .menu button { display: flex; width: 100%; align-items: center; gap: 12px; padding: 16px 4px;
+    border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer;
+    text-decoration: none; color: var(--text); }
+  .menu svg { width: 22px; height: 22px; flex: none; }
+  .menu small { display: block; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <h1>Carte Fedeltà</h1>
+    <button class="iconbtn" id="btnMenu" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+    </button>
+  </div>
+  <input class="search" id="search" type="search" placeholder="Cerca una carta…" autocomplete="off">
+</header>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>
+    <strong>Nessuna carta ancora</strong>
+    Tocca <b>Aggiungi</b> per inquadrare un codice a barre con la fotocamera,
+    oppure importa gli screenshot delle carte dall'altra app.
+  </div>
+</main>
+
+<button class="fab" id="btnAdd">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  Aggiungi
+</button>
+
+<!-- Scelta modalità di aggiunta -->
+<section class="sheet" id="addMenu">
+  <div class="top">
+    <h2>Aggiungi carta</h2>
+    <button class="iconbtn" data-close aria-label="Chiudi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="menu">
+    <button id="optCamera">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>
+      <span>Inquadra con la fotocamera<small>Punta il codice mostrato da un altro telefono o su carta</small></span>
+    </button>
+    <button id="optImages">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+      <span>Da screenshot / foto<small>Puoi selezionarne tante insieme: verranno lette una per una</small></span>
+    </button>
+    <button id="optManual">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+      <span>Inserisci a mano<small>Scrivi il numero stampato sotto il codice</small></span>
+    </button>
+  </div>
+  <input type="file" id="fileImages" accept="image/*" multiple hidden>
+</section>
+
+<!-- Modifica carta -->
+<section class="sheet" id="edit">
+  <div class="top">
+    <h2 id="editTitle">Nuova carta</h2>
+    <button class="iconbtn" data-close aria-label="Chiudi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="queue" id="queueInfo" hidden></div>
+  <form id="form" autocomplete="off">
+    <label for="fName">Nome del negozio</label>
+    <input class="field" id="fName" required placeholder="Es. Supermercato, Profumeria…">
+
+    <label for="fCode">Numero / contenuto del codice</label>
+    <div class="row">
+      <input class="field" id="fCode" required inputmode="text" placeholder="Es. 8012345678901">
+      <button type="button" class="btn" id="fScan" style="flex:0 0 auto" aria-label="Scansiona">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>
+      </button>
+    </div>
+
+    <label for="fFormat">Tipo di codice</label>
+    <select class="field" id="fFormat"></select>
+    <div class="hint">Se la carta è stata letta dalla fotocamera o da uno screenshot il tipo è già giusto. Se non sai, lascia <b>Code 128</b>: lo leggono quasi tutte le casse.</div>
+
+    <div class="preview" id="preview"></div>
+    <div class="warn" id="previewWarn" hidden></div>
+
+    <label>Colore</label>
+    <div class="colors" id="colors"></div>
+
+    <label for="fNote">Note (facoltative)</label>
+    <textarea class="field" id="fNote" rows="2" placeholder="Es. tessera intestata a…, PIN…"></textarea>
+
+    <button class="btn primary block" type="submit">Salva</button>
+    <button class="btn block" type="button" id="btnSkip" hidden>Salta questa immagine</button>
+  </form>
+</section>
+
+<!-- Carta a schermo intero -->
+<section class="sheet" id="view">
+  <div class="top">
+    <span style="flex:1"></span>
+    <button class="iconbtn" data-close aria-label="Chiudi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="vname" id="vName"></div>
+  <div class="vnote" id="vNote"></div>
+  <div class="codebox" id="vCode"></div>
+  <div class="vnum" id="vNum"></div>
+  <div class="vhint">Alza la luminosità dello schermo al massimo per una lettura più facile alla cassa.</div>
+  <div class="vactions">
+    <button class="btn" id="vEdit">Modifica</button>
+    <button class="btn danger" id="vDelete">Elimina</button>
+  </div>
+</section>
+
+<!-- Scanner fotocamera -->
+<section class="sheet" id="scan">
+  <video id="video" playsinline muted></video>
+  <div class="frame"></div>
+  <div class="scanbar">
+    <button class="iconbtn" data-close aria-label="Chiudi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <span style="flex:1"></span>
+    <button class="iconbtn" id="btnTorch" aria-label="Torcia" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg></button>
+  </div>
+  <div class="scanmsg" id="scanMsg">Inquadra il codice a barre</div>
+</section>
+
+<!-- Menu impostazioni -->
+<section class="sheet" id="settings">
+  <div class="top">
+    <h2>Menu</h2>
+    <button class="iconbtn" data-close aria-label="Chiudi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="menu">
+    <button id="btnSort">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+      <span>Ordinamento: <b id="sortLabel"></b><small>Tocca per cambiare</small></span>
+    </button>
+    <button id="btnExport">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+      <span>Esporta backup<small>Salva un file con tutte le carte (consigliato!)</small></span>
+    </button>
+    <button id="btnImport">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg>
+      <span>Ripristina backup<small>Carica un file esportato in precedenza</small></span>
+    </button>
+    <button id="btnInstall" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+      <span>Installa sul telefono<small>Aggiunge l'icona nella schermata Home</small></span>
+    </button>
+  </div>
+  <p class="hint">Le carte sono salvate solo su questo telefono, dentro il browser. Non vengono inviate a nessuno.
+    Se cancelli i dati del browser o cambi telefono le perdi: fai ogni tanto un <b>backup</b>.</p>
+  <input type="file" id="fileBackup" accept="application/json,.json" hidden>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script src="bwip-js-min.js"></script>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const STORE_KEY = 'carte_fedelta_v1';
+const SORT_KEY = 'carte_fedelta_sort';
+
+// Formati: nome BarcodeDetector -> nome bwip-js
+const FORMATS = [
+  { id: 'code_128', bcid: 'code128', label: 'Code 128' },
+  { id: 'ean_13', bcid: 'ean13', label: 'EAN-13' },
+  { id: 'ean_8', bcid: 'ean8', label: 'EAN-8' },
+  { id: 'upc_a', bcid: 'upca', label: 'UPC-A' },
+  { id: 'upc_e', bcid: 'upce', label: 'UPC-E' },
+  { id: 'code_39', bcid: 'code39', label: 'Code 39' },
+  { id: 'code_93', bcid: 'code93', label: 'Code 93' },
+  { id: 'itf', bcid: 'interleaved2of5', label: 'ITF (Interleaved 2 of 5)' },
+  { id: 'codabar', bcid: 'rationalizedCodabar', label: 'Codabar' },
+  { id: 'qr_code', bcid: 'qrcode', label: 'QR Code', square: true },
+  { id: 'data_matrix', bcid: 'datamatrix', label: 'Data Matrix', square: true },
+  { id: 'aztec', bcid: 'azteccode', label: 'Aztec', square: true },
+  { id: 'pdf417', bcid: 'pdf417', label: 'PDF417' }
+];
+const fmt = (id) => FORMATS.find((f) => f.id === id) || FORMATS[0];
+
+const COLORS = ['#dc2626', '#ea580c', '#f59e0b', '#fde047', '#16a34a', '#0d9488',
+                '#0284c7', '#2563eb', '#7c3aed', '#db2777', '#475569', '#0f172a', '#e5e7eb'];
+const isLight = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  const r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  return (r * 299 + g * 587 + b * 114) / 1000 > 165;
+};
+
+// ---------- Dati ----------
+let cards = [];
+function load() {
+  try { cards = JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { cards = []; }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(cards)); }
+  catch (e) { toast('Errore nel salvataggio: ' + e.message); }
+}
+let sortMode = 'uso';
+try { sortMode = localStorage.getItem(SORT_KEY) || 'uso'; } catch {}
+const SORTS = { uso: 'più usate', nome: 'alfabetico', recenti: 'aggiunte di recente' };
+
+// ---------- Utility ----------
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+const openSheets = [];
+function openSheet(id) {
+  $(id).classList.add('open'); $(id).scrollTop = 0;
+  openSheets.push(id);
+  history.pushState({ sheet: id }, '');
+}
+let popWaiters = [];
+function closeTop() {
+  if (!openSheets.length) return Promise.resolve();
+  return new Promise((r) => { popWaiters.push(r); history.back(); });
+}
+// Il tasto "indietro" di Android chiude il foglio aperto invece di uscire dall'app
+window.addEventListener('popstate', () => {
+  const id = openSheets.pop();
+  if (!id) return;
+  $(id).classList.remove('open');
+  onClose(id);
+  const w = popWaiters; popWaiters = []; w.forEach((r) => r());
+});
+function onClose(id) {
+  if (id === 'scan') stopScan();
+  if (id === 'view') releaseWake();
+  if (id === 'edit') { queue = []; queueTotal = 0; }
+}
+document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeTop));
+
+// ---------- Disegno codici ----------
+function drawCode(canvas, text, formatId, big) {
+  const f = fmt(formatId);
+  const opts = { bcid: f.bcid, text: String(text), scale: big ? 4 : 2, paddingwidth: 0, paddingheight: 0 };
+  if (!f.square && f.bcid !== 'pdf417') opts.height = big ? 22 : 14;
+  if (f.bcid === 'pdf417') opts.columns = 4;
+  if (f.square) opts.scale = big ? 8 : 4;
+  bwipjs.toCanvas(canvas, opts);
+}
+// Prova il formato scelto; se il numero non è valido per quel formato usa Code 128
+function renderInto(container, text, formatId, big) {
+  container.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  container.appendChild(canvas);
+  container.classList.toggle('square', !!fmt(formatId).square);
+  try { drawCode(canvas, text, formatId, big); return null; }
+  catch (e) {
+    try { drawCode(canvas, text, 'code_128', big); container.classList.remove('square');
+      return 'Il numero non è valido come ' + fmt(formatId).label + ': viene mostrato come Code 128.'; }
+    catch (e2) { container.textContent = 'Impossibile disegnare il codice'; return String(e2.message || e2); }
+  }
+}
+
+// ---------- Lista ----------
+function renderGrid() {
+  const q = $('search').value.trim().toLowerCase();
+  const list = cards.filter((c) => !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) ||
+    (c.note || '').toLowerCase().includes(q));
+  if (sortMode === 'nome') list.sort((a, b) => a.name.localeCompare(b.name, 'it'));
+  else if (sortMode === 'recenti') list.sort((a, b) => b.created - a.created);
+  else list.sort((a, b) => (b.uses || 0) - (a.uses || 0) || (b.lastUsed || 0) - (a.lastUsed || 0) ||
+    a.name.localeCompare(b.name, 'it'));
+
+  const grid = $('grid'); grid.innerHTML = '';
+  for (const c of list) {
+    const b = document.createElement('button');
+    b.className = 'card' + (isLight(c.color) ? ' light' : '');
+    b.style.background = c.color;
+    const n = document.createElement('div'); n.className = 'name'; n.textContent = c.name;
+    const num = document.createElement('div'); num.className = 'num'; num.textContent = c.code;
+    b.append(n, num);
+    b.addEventListener('click', () => showCard(c.id));
+    grid.appendChild(b);
+  }
+  $('empty').hidden = cards.length > 0;
+  if (cards.length && !list.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">Nessuna carta trovata</div>';
+  }
+}
+$('search').addEventListener('input', renderGrid);
+
+// ---------- Vista carta ----------
+let viewing = null, wakeLock = null;
+async function showCard(id) {
+  const c = cards.find((x) => x.id === id); if (!c) return;
+  viewing = id;
+  c.uses = (c.uses || 0) + 1; c.lastUsed = Date.now(); save();
+  $('vName').textContent = c.name;
+  $('vNote').textContent = c.note || '';
+  $('vNum').textContent = c.code;
+  openSheet('view');
+  renderInto($('vCode'), c.code, c.format, true);
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {}
+  renderGrid();
+}
+function releaseWake() { if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } }
+$('vEdit').addEventListener('click', () => {
+  const id = viewing;
+  closeTop().then(() => editCard({ ...cards.find((c) => c.id === id) }));
+});
+$('vDelete').addEventListener('click', () => {
+  const c = cards.find((x) => x.id === viewing);
+  if (!c || !confirm('Eliminare la carta "' + c.name + '"?')) return;
+  cards = cards.filter((x) => x.id !== viewing); save(); renderGrid(); closeTop(); toast('Carta eliminata');
+});
+
+// ---------- Modifica ----------
+let editing = null, queue = [], queueTotal = 0;
+$('fFormat').innerHTML = FORMATS.map((f) => `<option value="${f.id}">${f.label}</option>`).join('');
+function renderColors(sel) {
+  $('colors').innerHTML = '';
+  for (const col of COLORS) {
+    const s = document.createElement('button'); s.type = 'button';
+    s.className = 'swatch' + (col === sel ? ' sel' : ''); s.style.background = col;
+    s.setAttribute('aria-label', 'Colore ' + col);
+    s.addEventListener('click', () => { editing.color = col; renderColors(col); });
+    $('colors').appendChild(s);
+  }
+}
+function editCard(data, fromQueue) {
+  editing = Object.assign({ id: null, name: '', code: '', format: 'code_128', note: '',
+    color: COLORS[Math.floor(Math.random() * 11)] }, data);
+  $('editTitle').textContent = editing.id ? 'Modifica carta' : 'Nuova carta';
+  $('fName').value = editing.name; $('fCode').value = editing.code;
+  $('fFormat').value = editing.format; $('fNote').value = editing.note || '';
+  renderColors(editing.color); updatePreview();
+  const inQueue = queueTotal > 0 && (fromQueue || queue.length > 0);
+  $('queueInfo').hidden = !inQueue; $('btnSkip').hidden = !inQueue;
+  if (inQueue) $('queueInfo').textContent = 'Immagine ' + (queueTotal - queue.length) + ' di ' + queueTotal +
+    (data.srcName ? ' · ' + data.srcName : '');
+  if (!$('edit').classList.contains('open')) openSheet('edit');
+  else $('edit').scrollTop = 0;
+  setTimeout(() => (editing.code ? $('fName') : $('fCode')).focus(), 100);
+}
+function updatePreview() {
+  const code = $('fCode').value.trim();
+  if (!code) { $('preview').innerHTML = '<span style="color:#94a3b8">Anteprima del codice</span>'; $('previewWarn').hidden = true; return; }
+  const w = renderInto($('preview'), code, $('fFormat').value, false);
+  $('previewWarn').hidden = !w; $('previewWarn').textContent = w || '';
+}
+$('fCode').addEventListener('input', updatePreview);
+$('fFormat').addEventListener('change', updatePreview);
+$('form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = $('fName').value.trim(), code = $('fCode').value.trim();
+  if (!name || !code) return;
+  const data = { name, code, format: $('fFormat').value, note: $('fNote').value.trim(), color: editing.color };
+  if (editing.id) {
+    Object.assign(cards.find((c) => c.id === editing.id), data);
+  } else {
+    if (cards.some((c) => c.code === code) && !confirm('Esiste già una carta con questo numero. Salvarla lo stesso?')) return;
+    cards.push({ id: uid(), created: Date.now(), uses: 0, ...data });
+  }
+  save(); renderGrid(); toast('Carta salvata');
+  if (!nextInQueue()) closeTop();
+});
+$('btnSkip').addEventListener('click', () => { if (!nextInQueue()) closeTop(); });
+
+// ---------- Aggiunta ----------
+$('btnAdd').addEventListener('click', () => openSheet('addMenu'));
+$('optManual').addEventListener('click', () => { replaceSheet(() => editCard({})); });
+$('optCamera').addEventListener('click', () => { replaceSheet(() => startScan((r) => editCard(r))); });
+$('optImages').addEventListener('click', () => $('fileImages').click());
+$('fScan').addEventListener('click', () => startScan((r) => {
+  $('fCode').value = r.code; $('fFormat').value = r.format; editing.code = r.code; updatePreview();
+}));
+function replaceSheet(fn) { closeTop().then(fn); }
+
+function hasDetector() { return 'BarcodeDetector' in window; }
+let detector = null;
+async function getDetector() {
+  if (detector) return detector;
+  let formats;
+  try { formats = await BarcodeDetector.getSupportedFormats(); } catch { formats = undefined; }
+  detector = formats && formats.length ? new BarcodeDetector({ formats }) : new BarcodeDetector();
+  return detector;
+}
+const normFormat = (f) => (FORMATS.some((x) => x.id === f) ? f : 'code_128');
+
+// Screenshot / foto: anche più di una alla volta
+$('fileImages').addEventListener('change', async (e) => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (!files.length) return;
+  if (!hasDetector()) { toast('Questo browser non sa leggere i codici dalle immagini. Usa Chrome su Android.'); return; }
+  toast('Lettura di ' + files.length + (files.length > 1 ? ' immagini…' : ' immagine…'));
+  const det = await getDetector();
+  const found = [], failed = [];
+  for (const file of files) {
+    try {
+      const bmp = await createImageBitmap(file);
+      const res = await det.detect(bmp);
+      if (res.length) {
+        // Se ce ne sono più di uno prende il più grande
+        res.sort((a, b) => b.boundingBox.width * b.boundingBox.height - a.boundingBox.width * a.boundingBox.height);
+        found.push({ code: res[0].rawValue, format: normFormat(res[0].format), srcName: file.name,
+          name: guessName(file.name) });
+      } else failed.push(file.name);
+    } catch { failed.push(file.name); }
+  }
+  if (failed.length) toast('Nessun codice trovato in ' + failed.length + ' immagin' + (failed.length > 1 ? 'i' : 'e'));
+  if (!found.length) return;
+  await closeTop();
+  queue = found; queueTotal = found.length;
+  nextInQueue();
+});
+function nextInQueue() {
+  if (!queue.length) { queueTotal = 0; return false; }
+  editCard(queue.shift(), true);
+  return true;
+}
+// Prova a ricavare un nome dal file (es. "Screenshot_..._Conad.png"): spesso non utile, quindi solo se sensato
+function guessName(fn) {
+  const base = fn.replace(/\.[a-z0-9]+$/i, '');
+  if (/^(img|image|screenshot|scr|photo|pxl|dsc|whatsapp)/i.test(base) || /\d{6,}/.test(base)) return '';
+  return base.replace(/[_-]+/g, ' ').trim();
+}
+
+// ---------- Scanner fotocamera ----------
+let stream = null, scanning = false, onScanResult = null;
+async function startScan(cb) {
+  if (!hasDetector()) { toast('Lettura con fotocamera non disponibile in questo browser. Usa Chrome su Android.'); return; }
+  onScanResult = cb;
+  openSheet('scan');
+  $('scanMsg').textContent = 'Avvio fotocamera…';
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+  } catch (e) {
+    $('scanMsg').textContent = 'Impossibile usare la fotocamera: consenti l\'accesso nelle impostazioni del browser.';
+    return;
+  }
+  const v = $('video'); v.srcObject = stream; await v.play().catch(() => {});
+  const track = stream.getVideoTracks()[0];
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  $('btnTorch').hidden = !caps.torch;
+  $('scanMsg').textContent = 'Inquadra il codice a barre';
+  const det = await getDetector();
+  scanning = true;
+  const loop = async () => {
+    if (!scanning) return;
+    try {
+      if (v.readyState >= 2) {
+        const res = await det.detect(v);
+        if (res.length && scanning) {
+          const r = res[0];
+          if (navigator.vibrate) navigator.vibrate(80);
+          const cb = onScanResult;
+          scanning = false;
+          closeTop().then(() => cb({ code: r.rawValue, format: normFormat(r.format) }));
+          return;
+        }
+      }
+    } catch {}
+    setTimeout(loop, 150);
+  };
+  loop();
+}
+let torchOn = false;
+$('btnTorch').addEventListener('click', async () => {
+  const track = stream && stream.getVideoTracks()[0]; if (!track) return;
+  torchOn = !torchOn;
+  try { await track.applyConstraints({ advanced: [{ torch: torchOn }] }); } catch {}
+});
+function stopScan() {
+  scanning = false; torchOn = false;
+  if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+  $('video').srcObject = null;
+}
+
+// ---------- Menu ----------
+$('btnMenu').addEventListener('click', () => { $('sortLabel').textContent = SORTS[sortMode]; openSheet('settings'); });
+$('btnSort').addEventListener('click', () => {
+  const keys = Object.keys(SORTS); sortMode = keys[(keys.indexOf(sortMode) + 1) % keys.length];
+  try { localStorage.setItem(SORT_KEY, sortMode); } catch {}
+  $('sortLabel').textContent = SORTS[sortMode]; renderGrid();
+});
+$('btnExport').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({ app: 'carte-fedelta', version: 1, exported: new Date().toISOString(), cards }, null, 2)],
+    { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'carte-fedelta-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast('Backup scaricato nella cartella Download');
+});
+$('btnImport').addEventListener('click', () => $('fileBackup').click());
+$('fileBackup').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const incoming = Array.isArray(data) ? data : data.cards;
+    if (!Array.isArray(incoming)) throw new Error('formato non riconosciuto');
+    let added = 0;
+    for (const c of incoming) {
+      if (!c || !c.code || !c.name) continue;
+      if (cards.some((x) => x.code === String(c.code) && x.name === String(c.name))) continue;
+      cards.push({ id: uid(), created: Date.now(), uses: 0, color: COLORS[6], format: 'code_128', note: '',
+        ...c, id: uid(), code: String(c.code), name: String(c.name), format: normFormat(c.format) });
+      added++;
+    }
+    save(); renderGrid(); toast(added + ' carte ripristinate');
+  } catch (err) { toast('File non valido: ' + err.message); }
+});
+
+// Installazione come app
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; $('btnInstall').hidden = false; });
+$('btnInstall').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; $('btnInstall').hidden = true;
+});
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+load(); renderGrid();
+</script>
+</body>
+</html>
