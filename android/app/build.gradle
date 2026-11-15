@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Su GitHub Actions il numero di build cresce a ogni compilazione:
+// così ogni nuovo APK si installa sopra il precedente senza perdere le carte.
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int
+
+android {
+    namespace 'it.cacillo.cartefedelta'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'it.cacillo.cartefedelta'
+        minSdk 24
+        targetSdk 34
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
+    }
+
+    // Chiave fissa: gli aggiornamenti devono essere firmati sempre con la stessa chiave,
+    // altrimenti Android rifiuta di installarli sopra la versione precedente.
+    signingConfigs {
+        release {
+            storeFile file('carte.keystore')
+            storePassword 'cartefedelta'
+            keyAlias 'carte'
+            keyPassword 'cartefedelta'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    // L'app usa direttamente i file della web app nella cartella carte/
+    sourceSets {
+        main {
+            assets.srcDirs = ['../../carte']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}

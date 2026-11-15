@@ -265,6 +265,8 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 const STORE_KEY = 'carte_fedelta_v1';
+// true quando la pagina gira dentro l'app Android (vedi cartella android/)
+const inApp = typeof window.AndroidBridge !== 'undefined';
 const SORT_KEY = 'carte_fedelta_sort';
 
 // Formati: nome BarcodeDetector -> nome bwip-js
@@ -401,10 +403,11 @@ async function showCard(id) {
   $('vNum').textContent = c.code;
   openSheet('view');
   renderInto($('vCode'), c.code, c.format, true);
+  if (inApp) AndroidBridge.keepScreenOn(true);
   try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {}
   renderGrid();
 }
-function releaseWake() { if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } }
+function releaseWake() { if (inApp) AndroidBridge.keepScreenOn(false); if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } }
 $('vEdit').addEventListener('click', () => {
   const id = viewing;
   closeTop().then(() => editCard({ ...cards.find((c) => c.id === id) }));
@@ -477,14 +480,60 @@ $('fScan').addEventListener('click', () => startScan((r) => {
 }));
 function replaceSheet(fn) { closeTop().then(fn); }
 
-function hasDetector() { return 'BarcodeDetector' in window; }
+// Lettore codici: usa quello integrato in Chrome se c'è, altrimenti ZXing
+// (necessario nell'app Android, dove il lettore integrato non esiste).
 let detector = null;
 async function getDetector() {
   if (detector) return detector;
-  let formats;
-  try { formats = await BarcodeDetector.getSupportedFormats(); } catch { formats = undefined; }
-  detector = formats && formats.length ? new BarcodeDetector({ formats }) : new BarcodeDetector();
+  if ('BarcodeDetector' in window) {
+    let formats = [];
+    try { formats = await BarcodeDetector.getSupportedFormats(); } catch {}
+    if (formats.length) { detector = new BarcodeDetector({ formats }); return detector; }
+  }
+  detector = await zxingDetector();
   return detector;
+}
+function loadScript(src) {
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('caricamento ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function zxingDetector() {
+  if (!window.ZXing) await loadScript('zxing-min.js');
+  const Z = window.ZXing;
+  const hints = new Map();
+  hints.set(Z.DecodeHintType.TRY_HARDER, true);
+  const reader = new Z.MultiFormatReader(); reader.setHints(hints);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const name = (n) => { const k = Z.BarcodeFormat[n] || ''; return k === 'PDF_417' ? 'pdf417' : k.toLowerCase(); };
+  const tryDecode = () => {
+    try {
+      const r = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(canvas))));
+      return [{ rawValue: r.getText(), format: name(r.getBarcodeFormat()), boundingBox: { width: 1, height: 1 } }];
+    } catch { return null; }
+  };
+  return {
+    // source: video, immagine o ImageBitmap. rotate: prova anche girata di 90° (codici in verticale)
+    async detect(source, rotate) {
+      const w = source.videoWidth || source.width, h = source.videoHeight || source.height;
+      if (!w || !h) return [];
+      const k = Math.min(1, 1600 / Math.max(w, h));
+      const cw = Math.round(w * k), ch = Math.round(h * k);
+      canvas.width = cw; canvas.height = ch;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch); // le parti trasparenti diventano bianche, non nere
+      ctx.drawImage(source, 0, 0, cw, ch);
+      let res = tryDecode();
+      if (!res && rotate) {
+        canvas.width = ch; canvas.height = cw;
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, ch, cw);
+        ctx.save(); ctx.translate(ch, 0); ctx.rotate(Math.PI / 2); ctx.drawImage(source, 0, 0, cw, ch); ctx.restore();
+        res = tryDecode();
+      }
+      return res || [];
+    }
+  };
 }
 const normFormat = (f) => (FORMATS.some((x) => x.id === f) ? f : 'code_128');
 
@@ -492,14 +541,14 @@ const normFormat = (f) => (FORMATS.some((x) => x.id === f) ? f : 'code_128');
 $('fileImages').addEventListener('change', async (e) => {
   const files = [...e.target.files]; e.target.value = '';
   if (!files.length) return;
-  if (!hasDetector()) { toast('Questo browser non sa leggere i codici dalle immagini. Usa Chrome su Android.'); return; }
   toast('Lettura di ' + files.length + (files.length > 1 ? ' immagini…' : ' immagine…'));
-  const det = await getDetector();
+  let det;
+  try { det = await getDetector(); } catch (err) { toast('Lettore codici non disponibile: ' + err.message); return; }
   const found = [], failed = [];
   for (const file of files) {
     try {
       const bmp = await createImageBitmap(file);
-      const res = await det.detect(bmp);
+      const res = await det.detect(bmp, true);
       if (res.length) {
         // Se ce ne sono più di uno prende il più grande
         res.sort((a, b) => b.boundingBox.width * b.boundingBox.height - a.boundingBox.width * a.boundingBox.height);
@@ -529,7 +578,7 @@ function guessName(fn) {
 // ---------- Scanner fotocamera ----------
 let stream = null, scanning = false, onScanResult = null;
 async function startScan(cb) {
-  if (!hasDetector()) { toast('Lettura con fotocamera non disponibile in questo browser. Usa Chrome su Android.'); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Fotocamera non disponibile su questo dispositivo.'); return; }
   onScanResult = cb;
   openSheet('scan');
   $('scanMsg').textContent = 'Avvio fotocamera…';
@@ -545,7 +594,8 @@ async function startScan(cb) {
   const caps = track.getCapabilities ? track.getCapabilities() : {};
   $('btnTorch').hidden = !caps.torch;
   $('scanMsg').textContent = 'Inquadra il codice a barre';
-  const det = await getDetector();
+  let det;
+  try { det = await getDetector(); } catch (err) { $('scanMsg').textContent = 'Lettore codici non disponibile: ' + err.message; return; }
   scanning = true;
   const loop = async () => {
     if (!scanning) return;
@@ -586,11 +636,13 @@ $('btnSort').addEventListener('click', () => {
   $('sortLabel').textContent = SORTS[sortMode]; renderGrid();
 });
 $('btnExport').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify({ app: 'carte-fedelta', version: 1, exported: new Date().toISOString(), cards }, null, 2)],
-    { type: 'application/json' });
+  const json = JSON.stringify({ app: 'carte-fedelta', version: 1, exported: new Date().toISOString(), cards }, null, 2);
+  const fileName = 'carte-fedelta-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  if (inApp) { AndroidBridge.saveFile(fileName, json); return; } // l'app chiede dove salvarlo
+  const blob = new Blob([json], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'carte-fedelta-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.download = fileName;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   toast('Backup scaricato nella cartella Download');
@@ -622,7 +674,7 @@ $('btnInstall').addEventListener('click', async () => {
   if (!installPrompt) return;
   installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; $('btnInstall').hidden = true;
 });
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+if (!inApp && 'serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
