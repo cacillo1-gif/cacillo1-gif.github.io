@@ -125,6 +125,7 @@
 
 <script>
 //CORE-START
+const TOLL=20;   // tolleranza (mm) sulla lunghezza interna nominale
 const VEICOLI = {
   c20:   {nome:"Container 20'",               tipo:"container", L:5898,  W:2352},
   c40:   {nome:"Container 40'",               tipo:"container", L:12032, W:2352},
@@ -237,7 +238,7 @@ function valuta(reels, v, opz, schema, ordine){
   if(opz.soloSingole){
     for(let c=0;c<=Math.min(maxD,8);c++){ if(opz.nCentrali>=0 && c!==opz.nCentrali) continue; const P=N-c; if(corsie(schema,P).filter(x=>x==='C').length===c) candidati.push(c); }
   } else for(let D=0;D<=maxD;D++) candidati.push(D);
-  const prova=D=>{ const pile=costruisciSchema(reels,D,ordine,df,schema); return (pile && simula(pile,v,opz).lung<=v.L) ? pile : null; };
+  const prova=D=>{ const pile=costruisciSchema(reels,D,ordine,df,schema); return (pile && simula(pile,v,opz).lung<=v.L+TOLL) ? pile : null; };
   if(opz.soloSingole){
     for(const D of candidati){ const pile=prova(D); if(pile) return risultato(pile,true); }
   } else if(opz.tutteDoppie){
@@ -271,7 +272,6 @@ function spazioExtra(r,v,opz){
 }
 // Quante colonne centrali (doppie) servirebbero ancora per chiudere lo spazio libero.
 // Prova a metterne una subito verso la cabina e le altre in mezzo/in fondo; tolleranza di pochi mm sul limite.
-const TOLL=20;
 function colonneAggiunte(r,v,opz){
   const pile0=r.pile; if(!r.ok || !pile0.length) return {add:[],pile:pile0,sim:null,fuoriMm:0};
   const last=pile0[pile0.length-1].d;
@@ -487,6 +487,7 @@ function calcola(){
       if(r.aggiunte && r.aggiunte.length){ const n=r.aggiunte.length, ai=r.aggInfo;
         const pos=[]; { let prev=0; ai.pile.forEach(p=>{ if(p.aggiunta) pos.push(prev===0?'C'+(pos.length+1)+' subito verso la cabina, prima della n. 1':'C'+(pos.length+1)+' dopo la n. '+prev); else prev++; }); }
         h+=`<div class="warn"><b>Il mezzo non è pieno:</b> con le sole ${r.caricate} bobine restano ${fmt(v.L-r.sim.lung)} mm in coda. Per riempirlo e bloccare il carico servono ancora <b>${n===1?'1 colonna centrale':n+' colonne centrali'}</b> (${2*n} bobine in più, a due a due sovrapposte): ${pos.join('; ')}. Sono appoggiate alla pila più avanzata e <b>non fanno parte delle ${r.caricate} bobine inserite</b>. Sono disegnate tratteggiate in arancione; lunghezza totale ${fmt(ai.sim.lung)} di ${fmt(v.L)} mm${ai.fuoriMm>0?` (al limite: ${fmt(ai.fuoriMm)} mm oltre la misura nominale, da verificare sul posto)`:''}.</div>`; }
+      if(r.sim.lung>v.L) h+=`<div class="warn"><b>Al limite:</b> il carico misura ${fmt(r.sim.lung)} mm contro ${fmt(v.L)} mm nominali (${fmt(r.sim.lung-v.L)} mm oltre): da verificare sul posto con le misure reali del mezzo.</div>`;
       if(!opz.suggerisci && r.suggeriteN>0) h+=`<div class="warn"><b>Il mezzo non è pieno:</b> restano ${fmt(v.L-r.sim.lung)} mm in coda. Per riempirlo servirebbero ancora ${r.suggeriteN===1?'1 colonna centrale':r.suggeriteN+' colonne centrali'} (${2*r.suggeriteN} bobine in più rispetto alle ${r.caricate} inserite). Per vederle nel disegno scegli «Disegna le colonne centrali in più».</div>`;
       if(opz.soloSingole && r.D>0) h+=`<div class="info"><b>Solo singole + ${r.D===1?'1 colonna centrale':r.D+' colonne centrali'}:</b> ${r.S} singole nel carico e ${r.D===1?'una colonna':r.D+' colonne'} di 2 bobine sovrapposte messe in mezzo (posizione n. ${r.sim.placed.map((p,k)=>p.finale?k+1:0).filter(x=>x).join(', ')}), appoggiate alla pila più avanzata. Le ${r.caricate} bobine sono tutte comprese. In coda restano ${fmt(v.L-r.sim.lung)} mm.</div>`;
       else if(opz.soloSingole) h+=`<div class="info"><b>Solo singole:</b> ${r.S} bobine = ${r.S} posizioni, nessuna sovrapposta. In coda restano ${fmt(v.L-r.sim.lung)} mm${r.extra>0?`: ci starebbero ancora circa <b>${r.extra} singole</b>`:': il mezzo è pieno'}.</div>`;
