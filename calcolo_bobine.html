@@ -270,7 +270,7 @@ function costruisciSchema(reels,D,ordine,df,sc,ctx){
 
 // Per uno schema trova il minimo numero di doppie che fa stare tutte le bobine nel mezzo (= mezzo riempito)
 function valuta(reels, v, opz, schema, ordine){
-  const N=reels.length, maxD=Math.floor(N/2), df=v.tipo==='bilico' && !!opz.dispari;
+  const N=reels.length, maxD=Math.floor(N/2), df=v.tipo==='bilico';
   const leadPref=v.tipo==='container' && schema.lead>0;
   const prefisso=(pile,n)=>pile.slice(0,n);
   const risultato=(pile,ok)=>{
