@@ -566,7 +566,7 @@ function calcola(){
   catch(e){ out.innerHTML=`<div class="warn">${e.message}</div>`; return; }
   const opz=leggiOpz(), piano=pianifica(tipi,v,opz), r=piano.scelto, best=piano.best, lr=piano.lr;
   const desc=tipi.map(t=>`${t.qta} × Ø${fmt(t.d)} mm`).join(' · ');
-  let h=`<section class="card rep"><div class="pr-only"><h1>Calcolo carico bobine – ${v.nome}</h1><p>${new Date().toLocaleDateString('it-IT')} · ${desc} · interno ${fmt(v.L)} × ${fmt(v.W)} mm</p></div>`;
+  let h=`<section class="card rep"><div class="pr-only"><h1>Calcolo carico bobine – ${v.nome}</h1><p>${new Date().toLocaleDateString('it-IT')} · ${desc} · interno ${fmt(v.L)} × ${fmt(v.W)} mm · v.17.11-b</p></div>`;
   if(!piano.reels.length) h+=`<div class="big">Nessuna bobina caricabile</div>`;
   else {
     h+=`<div class="hero"><div class="tile t1"><b>${r.D}</b><span>colonne doppie</span></div><div class="tile t2"><b>${r.S}</b><span>singole</span></div><div class="tile t3"><b>${r.centrali}${r.aggiunte&&r.aggiunte.length?' <small style="font-size:20px;font-weight:700">+'+r.aggiunte.length+'</small>':''}</b><span>centrali${r.aggiunte&&r.aggiunte.length?' (+ aggiunte)':''}</span></div><div class="tile t4"><b>${r.caricate}</b><span>bobine caricate</span></div></div>`;
