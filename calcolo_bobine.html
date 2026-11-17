@@ -114,7 +114,7 @@
       <summary>Impostazioni avanzate (giochi: 0 = a contatto)</summary>
       <div class="grid" style="margin-top:10px">
         <div><label>Gioco tra bobine (mm)</label><input id="gPile" type="number" min="0" value="0"></div>
-        <div><label>Vuoto max in coda (% di una bobina, solo singole)</label><input id="vMax" type="number" min="0" max="100" value="75"></div>
+        <div><label>Vuoto max in coda (% di una bobina, solo singole)</label><input id="vMax" type="number" min="0" max="100" value="85"></div>
         <div><label>Gioco contro le pareti (mm)</label><input id="mLato" type="number" min="0" value="0"></div>
       </div>
     </details>
@@ -185,9 +185,11 @@ function schemiEstesi(){
     if(m===0 && lead===0 && trail===0) out.push({lead,m,trail,id:'LR'});
     else out.push({lead,m,trail,id:`${lead?'C':''}${m?'/'+m:''}${trail?'+'+trail:''}`||'LR'});
   }
+  for(let k=1;k<=8;k++) out.push({lead:1,m:1,trail:0,front:k,id:'F'+k});
   return out;
 }
 const nomeSchema=sc=>{
+  if(sc.front!==undefined) return `${sc.front} ${sc.front===1?'centrale':'centrali'} verso la cabina, poi coppie A–B`;
   const t=[]; if(sc.lead) t.push('1 centrale in testa');
   t.push('coppie A–B');
   if(sc.m) t.push(`centrale ogni ${sc.m} ${sc.m===1?'coppia':'coppie'}`);
@@ -196,6 +198,14 @@ const nomeSchema=sc=>{
 };
 // Corsie per P pile: C, poi coppie L-R, ogni m coppie una C, poi le C finali
 function corsie(sc,P){
+  if(sc.front!==undefined){            // centrali tutte verso la cabina: C, coppia A–B, C, coppia A–B ... poi solo coppie
+    const o=[]; let c=0, alt=0;
+    while(o.length<P){
+      if(c<sc.front){ o.push('C'); c++; for(let g=0;g<2 && o.length<P;g++){ o.push(alt%2?'R':'L'); alt++; } }
+      else { o.push(alt%2?'R':'L'); alt++; }
+    }
+    return o;
+  }
   const out=[], tail=Math.min(sc.trail,P); let body=P-tail;
   for(let t=0;t<sc.lead && body>0;t++){ out.push('C'); body--; }
   let coppie=0;
@@ -246,7 +256,7 @@ function valuta(reels, v, opz, schema, ordine){
     if(pile && simula(pile,v,opz).lung<=v.L+TOLL){
       const r=risultato(pile,true); r.fill=true;
       const dm=Math.max(...pile.map(p=>p.d));
-      r.vuotoOk=(v.L-r.sim.lung)<=(opz.vuotoMax>0?opz.vuotoMax:0.75)*dm;   // vuoto in coda accettabile
+      r.vuotoOk=(v.L-r.sim.lung)<=(opz.vuotoMax>0?opz.vuotoMax:0.85)*dm;   // vuoto in coda accettabile
       return r; }
     const full=costr('geo'); let migl=[];
     if(full){ let n=full.length; while(n>0 && simula(full.slice(0,n),v,opz).lung>v.L) n--; migl=full.slice(0,n); }
@@ -351,7 +361,7 @@ function pianifica(tipi, v, opz){
   const nonCaricabili=reels.filter(r=>r.d>Wutile||r.d>v.L);
   const ok=reels.filter(r=>r.d<=Wutile&&r.d<=v.L);
   if(!ok.length) return {reels:ok, tot:reels.length, nonCaricabili, risultati:[], best:null, lr:null, scelto:null, Wutile, usaPeso, pesiNoti, pesi:null};
-  const risultati=schemiEstesi().map(s=>{
+  const risultati=schemiEstesi().filter(s=>opz.soloSingole ? (s.front!==undefined||s.id==='LR') : s.front===undefined).map(s=>{
     const geo=valuta(ok,v,opz,s,'geo');
     if(!usaPeso) return geo;
     const pe=valuta(ok,v,opz,s,'peso');
@@ -404,7 +414,7 @@ function leggiTipi(){
 }
 function caricaVeicolo(k){ const v=VEICOLI[k]; $('vL').value=v.L; $('vW').value=v.W; }
 function leggiVeicolo(){ const k=$('veicolo').value; return {nome:VEICOLI[k].nome, tipo:VEICOLI[k].tipo, L:+$('vL').value, W:+$('vW').value}; }
-function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2', nCentrali:+$('nCentrali').value, vuotoMax:(+$('vMax').value||75)/100, suggerisci:$('suggerisci').value==='1'}; }
+function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2', nCentrali:+$('nCentrali').value, vuotoMax:(+$('vMax').value||85)/100, suggerisci:$('suggerisci').value==='1'}; }
 
 const COLORE={L:'#2a7f8e',R:'#3f6fb5',C:'#d9822b'};
 const LATO={L:'lato A',R:'lato B',C:'centro'};
@@ -522,9 +532,9 @@ function calcola(){
       if(r.sim.lung>v.L) h+=`<div class="warn"><b>Al limite:</b> il carico misura ${fmt(r.sim.lung)} mm contro ${fmt(v.L)} mm nominali (${fmt(r.sim.lung-v.L)} mm oltre): da verificare sul posto con le misure reali del mezzo.</div>`;
       if(!opz.suggerisci && r.suggeriteN>0) h+=`<div class="warn"><b>Il mezzo non è pieno:</b> restano ${fmt(v.L-r.sim.lung)} mm in coda. Per riempirlo servirebbero ancora ${r.suggeriteN===1?'1 colonna centrale':r.suggeriteN+' colonne centrali'} (${2*r.suggeriteN} bobine in più rispetto alle ${r.caricate} inserite). Per vederle nel disegno scegli «Disegna le colonne centrali in più».</div>`;
       if(opz.soloSingole && r.D>0) h+=`<div class="info"><b>Solo singole + ${r.D===1?'1 colonna centrale':r.D+' colonne centrali'}:</b> ${r.S} singole nel carico e ${r.D===1?'una colonna':r.D+' colonne'} di 2 bobine sovrapposte messe in mezzo (posizione n. ${r.sim.placed.map((p,k)=>p.finale?k+1:0).filter(x=>x).join(', ')}), appoggiate alla pila più avanzata. Le ${r.caricate} bobine sono tutte comprese. In coda restano ${fmt(v.L-r.sim.lung)} mm.</div>`;
-      else if(opz.soloSingole) h+=`<div class="info"><b>Solo singole:</b> ${r.S} bobine = ${r.S} posizioni, nessuna sovrapposta${r.centrali>0?`, di cui <b>${r.centrali} ${r.centrali===1?'centrale':'centrali'}</b> (posizione n. ${r.sim.placed.map((p,k)=>p.lane==='C'?k+1:0).filter(x=>x).join(', ')}): stanno in mezzo, appoggiate alla pila più avanzata, e fanno parte delle ${r.S}`:''}. In coda restano ${fmt(v.L-r.sim.lung)} mm${r.extra>0?`: ci starebbero ancora circa <b>${r.extra} singole</b>`:((v.L-r.sim.lung)<150?': il mezzo è pieno':`: <b>il mezzo non è pieno</b>, non basta per un'altra bobina: il vuoto in coda va bloccato (cuscini d'aria, legname di calettamento o rete) perché il carico non si muova in viaggio`)}.</div>`;
+      else if(opz.soloSingole) h+=`<div class="info"><b>Solo singole:</b> ${r.S} bobine = ${r.S} posizioni, nessuna sovrapposta${r.centrali>0?`, di cui <b>${r.centrali} ${r.centrali===1?'centrale':'centrali'}</b> (posizione n. ${r.sim.placed.map((p,k)=>p.lane==='C'?k+1:0).filter(x=>x).join(', ')}): stanno in mezzo, appoggiate alla pila più avanzata, e fanno parte delle ${r.S}`:''}. In coda restano ${fmt(v.L-r.sim.lung)} mm${r.extra>0?`: ci starebbero ancora circa <b>${r.extra} ${r.extra===1?'singola':'singole'}</b>`:((v.L-r.sim.lung)<150?': il mezzo è pieno':`: <b>il mezzo non è pieno</b>, non basta per un'altra bobina: il vuoto in coda va bloccato (cuscini d'aria, legname di calettamento o rete) perché il carico non si muova in viaggio`)}.</div>`;
       else if(r.D>0 && !(r.aggiunte&&r.aggiunte.length)) h+=`<div class="info">Per riempire tutto il mezzo servono <b>${r.D} colonne doppie</b> e <b>${r.S} singole</b>: così le ${r.pile.length} posizioni disponibili sono tutte occupate. In coda restano ${fmt(v.L-r.sim.lung)} mm.</div>`;
-      else if(r.D===0 && !(r.aggiunte&&r.aggiunte.length)) h+=`<div class="info">Con ${r.caricate} bobine il mezzo non è ancora pieno: vanno tutte singole e ci starebbero ancora circa <b>${r.extra} singole</b> in più.</div>`;
+      else if(r.D===0 && !(r.aggiunte&&r.aggiunte.length)) h+=`<div class="info">Con ${r.caricate} bobine il mezzo non è ancora pieno: vanno tutte singole e ci starebbero ancora circa <b>${r.extra} ${r.extra===1?'singola':'singole'}</b> in più.</div>`;
     } else {
       if(opz.soloSingole) h+=`<div class="warn"><b>Non entrano tutte in singole:</b> se ne caricano ${r.caricate}, ne restano fuori ${r.fuori}. Con le doppie ne entrerebbero di più.</div>`;
       else h+=`<div class="warn"><b>Non entrano tutte, nemmeno tutte doppie:</b> con questo schema se ne caricano ${r.caricate} (${r.D} doppie + ${r.S} singole), ne restano fuori ${r.fuori}.</div>`;
