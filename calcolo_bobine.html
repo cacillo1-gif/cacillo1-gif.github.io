@@ -102,7 +102,8 @@
       <div><label>Lunghezza interna (mm)</label><input id="vL" type="number" min="1"></div>
       <div><label>Larghezza interna (mm)</label><input id="vW" type="number" min="1"></div>
       <div><label>Regola pesi (solo bilico)</label><select id="pesi"><option value="1">Sì: leggeri verso la cabina, pesanti sugli assi</option><option value="0">No</option></select></div>
-      <div><label>Zona assi: ultimi … mm del bilico</label><input id="zonaAssi" type="number" min="0" value="4000"></div>
+      <div><label>Zona assi: lunghezza (mm)</label><input id="zonaAssi" type="number" min="0" value="4000"></div>
+      <div><label>Zona assi spostata verso la cabina di (mm)</label><input id="zonaSpost" type="number" min="0" value="2400"></div>
       <div><label>Tipo di carico</label><select id="soloSing"><option value="0">Doppie e singole (riempi il mezzo)</option><option value="2">Tutte doppie (centrali solo se servono)</option><option value="1">Solo bobine singole</option></select></div>
       <div><label>Centrali tra le bobine inserite</label><select id="nCentrali"><option value="-1">Automatiche (decide il programma)</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
       <div><label>Se il mezzo non è pieno</label><select id="suggerisci"><option value="0">Non aggiungere bobine (solo avviso)</option><option value="1">Disegna colonne centrali in più (bobine extra)</option></select></div>
@@ -220,17 +221,39 @@ function corsie(sc,P){
 // Regola: due centrali non sono mai a contatto: tra l'una e l'altra almeno 2 pile sfalsate (lati A/B)
 function centraliOk(lanes){ let gap=99; for(const l of lanes){ if(l==='C'){ if(gap<2) return false; gap=0; } else gap++; } return true; }
 // Le colonne centrali sono sempre DOPPIE (2 bobine sovrapposte). Le altre pile occupano le corsie L/R nell'ordine di carico.
-function costruisciSchema(reels,D,ordine,df,sc){
+// Zona assi del bilico: parte da zonaSpost mm verso la cabina rispetto al fondo
+//   (da L-zonaAssi-zonaSpost a L-zonaSpost). Le colonne doppie vanno calcolate lì.
+function zonaAssiLimiti(v,opz){ const sp=opz.zonaSpost>0?opz.zonaSpost:0; return {a:Math.max(0,v.L-opz.zonaAssi-sp), b:v.L-sp}; }
+function costruisciSchema(reels,D,ordine,df,sc,ctx){
   const ordered=costruisciPile(reels,D,ordine,df), P=ordered.length, lanes=corsie(sc,P);
   const c=lanes.filter(x=>x==='C').length;
   if(c>D || !centraliOk(lanes)) return null;
-  const rest=ordered.slice(), cent=[];
-  for(let i=rest.length-1;i>=0 && cent.length<c;i--) if(rest[i].reels.length>1){ cent.unshift(rest[i]); rest.splice(i,1); }
-  if(cent.length<c) return null;
-  let ci=0, bi=0;
-  const out=lanes.map(l=> l==='C' ? cent[ci++] : rest[bi++]);
-  out.forEach((p,k)=>{ p.lane=lanes[k]; p.centrale=(lanes[k]==='C'); });
-  return out;
+  const assegna=ord=>{
+    const rest=ord.slice(), cent=[];
+    for(let i=rest.length-1;i>=0 && cent.length<c;i--) if(rest[i].reels.length>1){ cent.unshift(rest[i]); rest.splice(i,1); }
+    if(cent.length<c) return null;
+    let ci=0, bi=0;
+    const out=lanes.map(l=> l==='C' ? cent[ci++] : rest[bi++]);
+    out.forEach((p,k)=>{ p.lane=lanes[k]; p.centrale=(lanes[k]==='C'); });
+    return out;
+  };
+  // regola pesi con zona assi arretrata: le singole in coda (oltre gli assi) fanno spostare le doppie dentro la zona
+  if(ctx && ordine==='peso' && ctx.v.tipo==='bilico' && ctx.opz.zonaSpost>0 && D>0){
+    const z=zonaAssiLimiti(ctx.v,ctx.opz), idxS=[]; ordered.forEach((p,k)=>{ if(p.reels.length===1) idxS.push(k); });
+    let best=null;
+    for(let t=0;t<=idxS.length;t++){
+      const tail=idxS.slice(idxS.length-t), tset=new Set(tail);
+      const ord=ordered.filter((p,k)=>!tset.has(k)).concat(tail.map(k=>ordered[k]));
+      const out=assegna(ord); if(!out) continue;
+      const sim=simula(out,ctx.v,ctx.opz); if(sim.lung>ctx.v.L+TOLL) continue;
+      const dentro=sim.placed.filter(p=>p.doppia && p.x>=z.a && p.x<=z.b).length;
+      const oltre=sim.placed.filter(p=>p.doppia && p.x>z.b).length;      // doppie rimaste dietro la zona assi
+      const punt=dentro-oltre;
+      if(!best || punt>best.punt) best={t,dentro,oltre,punt,ord};
+    }
+    if(best){ return assegna(best.ord); }
+  }
+  return assegna(ordered);
 }
 
 // Per uno schema trova il minimo numero di doppie che fa stare tutte le bobine nel mezzo (= mezzo riempito)
@@ -267,7 +290,7 @@ function valuta(reels, v, opz, schema, ordine){
   if(opz.soloSingole){
     for(let c=0;c<=Math.min(maxD,8);c++){ if(opz.nCentrali>=0 && c!==opz.nCentrali) continue; const P=N-c; if(corsie(schema,P).filter(x=>x==='C').length===c) candidati.push(c); }
   } else for(let D=0;D<=maxD;D++) candidati.push(D);
-  const prova=D=>{ const pile=costruisciSchema(reels,D,ordine,df,schema); return (pile && simula(pile,v,opz).lung<=v.L+TOLL) ? pile : null; };
+  const prova=D=>{ const pile=costruisciSchema(reels,D,ordine,df,schema,{v,opz}); return (pile && simula(pile,v,opz).lung<=v.L+TOLL) ? pile : null; };
   if(opz.soloSingole){
     for(const D of candidati){ const pile=prova(D); if(pile) return risultato(pile,true); }
   } else if(opz.tutteDoppie){
@@ -346,11 +369,11 @@ function migliore(a,b){ // true se a è meglio di b
 function analisiPesi(res, v, opz){
   const pl=res.sim.placed, kgTot=pl.reduce((s,p)=>s+p.kg,0);
   if(!kgTot) return null;
-  const cg=pl.reduce((s,p)=>s+p.kg*p.x,0)/kgTot, zonaInizio=v.L-opz.zonaAssi;
-  const inZona=pl.filter(p=>p.x>=zonaInizio).reduce((s,p)=>s+p.kg,0);
+  const cg=pl.reduce((s,p)=>s+p.kg*p.x,0)/kgTot, zonaInizio=zonaAssiLimiti(v,opz).a, zonaFine=zonaAssiLimiti(v,opz).b;
+  const inZona=pl.filter(p=>p.x>=zonaInizio&&p.x<=zonaFine).reduce((s,p)=>s+p.kg,0);
   const shift=Math.max(0,v.L-res.sim.lung);
-  const inZonaSp=pl.filter(p=>p.x+shift>=zonaInizio).reduce((s,p)=>s+p.kg,0);
-  const pr=pl.filter(p=>!p.dispari), ordinato=pr.every((p,k)=>k===0||p.kg>=pr[k-1].kg-1e-9);
+  const inZonaSp=pl.filter(p=>p.x+shift>=zonaInizio&&p.x+shift<=zonaFine).reduce((s,p)=>s+p.kg,0);
+  const pr=pl.filter(p=>!p.dispari && !(opz.zonaSpost>0 && p.x>zonaFine+1)), ordinato=pr.every((p,k)=>k===0||p.kg>=pr[k-1].kg-1e-9);
   return {kgTot, cg, cgPct:cg/v.L, zonaInizio, inZona, quotaZona:inZona/kgTot, shift, cgSpostato:cg+shift, quotaZonaSpostata:inZonaSp/kgTot, ordinato};
 }
 
@@ -414,7 +437,7 @@ function leggiTipi(){
 }
 function caricaVeicolo(k){ const v=VEICOLI[k]; $('vL').value=v.L; $('vW').value=v.W; }
 function leggiVeicolo(){ const k=$('veicolo').value; return {nome:VEICOLI[k].nome, tipo:VEICOLI[k].tipo, L:+$('vL').value, W:+$('vW').value}; }
-function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2', nCentrali:+$('nCentrali').value, vuotoMax:(+$('vMax').value||85)/100, suggerisci:$('suggerisci').value==='1'}; }
+function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, zonaSpost:+$('zonaSpost').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2', nCentrali:+$('nCentrali').value, vuotoMax:(+$('vMax').value||85)/100, suggerisci:$('suggerisci').value==='1'}; }
 
 const COLORE={L:'#2a7f8e',R:'#3f6fb5',C:'#d9822b'};
 const LATO={L:'lato A',R:'lato B',C:'centro'};
@@ -434,9 +457,9 @@ function svgPianta(res,v,opz,piano){
   s+=`<rect x="${pad}" y="${pad}" width="${v.L*S}" height="${Wd}" rx="4" fill="url(#gF)"/>`;
   s+=`<rect x="${pad-5}" y="${pad-5}" width="7" height="${Wd+10}" rx="3" fill="#0d2b3a"/>`;
   if(piano.usaPeso && opz.zonaAssi>0){
-    const x0=pad+Math.max(0,v.L-opz.zonaAssi)*S;
-    s+=`<rect x="${x0}" y="${pad}" width="${pad+v.L*S-x0}" height="${Wd}" fill="#e9d8c3" fill-opacity=".55"/>`;
-    s+=`<text x="${(x0+pad+v.L*S)/2}" y="${pad+Wd+12}" text-anchor="middle" font-size="11" fill="#8a5a2b" font-weight="700">zona assi (peso maggiore)</text>`;
+    const za=zonaAssiLimiti(v,opz), x0=pad+za.a*S, x1=pad+za.b*S;
+    s+=`<rect x="${x0}" y="${pad}" width="${x1-x0}" height="${Wd}" fill="#e9d8c3" fill-opacity=".55"/>`;
+    s+=`<text x="${(x0+x1)/2}" y="${pad+Wd+12}" text-anchor="middle" font-size="11" fill="#8a5a2b" font-weight="700">zona assi (colonne doppie)</text>`;
     s+=`<text x="${pad+4}" y="${pad+Wd+12}" font-size="11" fill="#555" transform="translate(60,0)">verso la cabina: peso minore</text>`;
   }
   s+=`<text x="${pad+10}" y="${pad-10}" font-size="11" font-weight="700" fill="#2a7f8e">▲ lato A</text><text x="${pad+10}" y="${pad+Wd+19}" font-size="11" font-weight="700" fill="#3f6fb5">▼ lato B</text>`;
@@ -474,7 +497,7 @@ function descSeq(res,v,opz,piano){
     if(p.rel) come += p.rel.t==='affiancata' ? ` · <b>affiancata</b> alla n. ${p.rel.n}` : ` · <b>sfalsata</b> di ${fmt(p.rel.dx)} mm (verso le porte) rispetto alla n. ${p.rel.n}`;
     if(p.finale) come += ` · <b>${p.doppia?'colonna centrale (2 bobine sovrapposte)':'bobina centrale'}, appoggiata alla pila più avanzata</b>`;
     if(p.dispari) come += ` · <b>singola in più, messa in fondo al camion</b>`;
-    if(piano.usaPeso && p.x>=v.L-opz.zonaAssi) come += ` · <b>sugli assi</b>`;
+    if(piano.usaPeso && p.x>=zonaAssiLimiti(v,opz).a && p.x<=zonaAssiLimiti(v,opz).b) come += ` · <b>sugli assi</b>`;
     h+=`<tr><td>${k+1}</td><td><span class="dot" style="background:${COLORE[p.lane]}"></span>${LATO[p.lane]}</td><td>${p.doppia?'<b>DOPPIA</b>':'singola'}</td><td>${fmt(p.d)}</td>${conKg?`<td>${fmt(p.kg)} kg</td>`:''}<td>${come}</td></tr>`;
   });
   return h+`</tbody></table>`;
@@ -485,10 +508,10 @@ function blocchiPesi(piano,r,v,opz){
   let h='';
   if(r.pesoRinunciato) h+=`<div class="warn"><b>Regola pesi non applicabile del tutto:</b> per tenere il mezzo pieno con questo schema non è possibile ordinare dal più leggero al più pesante senza usare più doppie. Si è dato la precedenza al riempimento.</div>`;
   else if(!w.ordinato) h+=`<div class="warn"><b>Regola pesi non rispettata del tutto:</b> le colonne centrali (doppie) stanno in mezzo al carico, quindi il peso non cresce sempre dalla cabina verso gli assi.</div>`;
-  else if(w.ordinato) h+=`<div class="info"><b>Regola pesi rispettata:</b> dalla cabina verso gli assi il peso di ogni posizione non diminuisce${r.S>0&&r.D>0&&!piano.pesiNoti?` (prima le ${r.S} singole, poi le ${r.D} doppie)`:''}.</div>`;
+  else if(w.ordinato) h+=`<div class="info"><b>Regola pesi rispettata:</b> dalla cabina verso gli assi il peso di ogni posizione non diminuisce${opz.zonaSpost>0&&r.D>0?`: le ${r.D} colonne doppie sono nella zona assi (spostata di ${fmtM(opz.zonaSpost)} m verso la cabina), le singole davanti e in coda oltre gli assi`:(r.S>0&&r.D>0&&!piano.pesiNoti?` (prima le ${r.S} singole, poi le ${r.D} doppie)`:'')}.</div>`;
   let t=piano.pesiNoti
-    ? `Peso totale ${fmt(w.kgTot)} kg · baricentro a ${fmtM(w.cg)} m dalla testata (${pct(w.cgPct)} della lunghezza) · nella zona assi (ultimi ${fmtM(opz.zonaAssi)} m) ci sono ${fmt(w.inZona)} kg, il ${pct(w.quotaZona)} del carico.`
-    : `Con bobine di peso uguale: baricentro a ${fmtM(w.cg)} m dalla testata (${pct(w.cgPct)} della lunghezza) e ${pct(w.quotaZona)} del carico nella zona assi (ultimi ${fmtM(opz.zonaAssi)} m). Inserisci i pesi per avere i kg.`;
+    ? `Peso totale ${fmt(w.kgTot)} kg · baricentro a ${fmtM(w.cg)} m dalla testata (${pct(w.cgPct)} della lunghezza) · nella zona assi (da ${fmtM(zonaAssiLimiti(v,opz).a)} a ${fmtM(zonaAssiLimiti(v,opz).b)} m dalla testata) ci sono ${fmt(w.inZona)} kg, il ${pct(w.quotaZona)} del carico.`
+    : `Con bobine di peso uguale: baricentro a ${fmtM(w.cg)} m dalla testata (${pct(w.cgPct)} della lunghezza) e ${pct(w.quotaZona)} del carico nella zona assi (da ${fmtM(zonaAssiLimiti(v,opz).a)} a ${fmtM(zonaAssiLimiti(v,opz).b)} m dalla testata). Inserisci i pesi per avere i kg.`;
   h+=`<div class="info"><b>Pesi sul bilico:</b> ${t}</div>`;
   if(w.shift>50) h+=`<div class="info">Il carico finisce a ${fmtM(r.sim.lung)} m e lascia ${fmtM(w.shift)} m liberi verso le porte: spostando tutto il carico verso il retro il baricentro passa a ${fmtM(w.cgSpostato)} m e la quota sugli assi sale al ${pct(w.quotaZonaSpostata)}.</div>`;
   h+=`<div class="note">Indicazione geometrica: i carichi esatti sugli assi dipendono da ralla, posizione degli assi e tara del mezzo.</div>`;
