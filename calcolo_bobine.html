@@ -104,7 +104,7 @@
       <div><label>Regola pesi (solo bilico)</label><select id="pesi"><option value="1">Sì: leggeri verso la cabina, pesanti sugli assi</option><option value="0">No</option></select></div>
       <div><label>Zona assi: ultimi … mm del bilico</label><input id="zonaAssi" type="number" min="0" value="4000"></div>
       <div><label>Tipo di carico</label><select id="soloSing"><option value="0">Doppie e singole (riempi il mezzo)</option><option value="2">Tutte doppie (centrali solo se servono)</option><option value="1">Solo bobine singole</option></select></div>
-      <div><label>Centrali tra le bobine inserite</label><select id="nCentrali"><option value="-1">Automatiche (per riempire il mezzo)</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
+      <div><label>Centrali tra le bobine inserite</label><select id="nCentrali"><option value="-1">Automatiche (decide il programma)</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
       <div><label>Se il mezzo non è pieno</label><select id="suggerisci"><option value="0">Non aggiungere bobine (solo avviso)</option><option value="1">Disegna colonne centrali in più (bobine extra)</option></select></div>
       <div><label>Singola in più (se dispari) in fondo (solo bilico)</label><select id="dispari"><option value="1">Sì</option><option value="0">No</option></select></div>
       <div><label>Schema di carico</label><select id="schema"><option value="auto">Automatico (prova anche le colonne centrali)</option><option value="LR">Solo alternate lato A – lato B</option></select></div>
@@ -114,6 +114,7 @@
       <summary>Impostazioni avanzate (giochi: 0 = a contatto)</summary>
       <div class="grid" style="margin-top:10px">
         <div><label>Gioco tra bobine (mm)</label><input id="gPile" type="number" min="0" value="0"></div>
+        <div><label>Vuoto max in coda (% di una bobina, solo singole)</label><input id="vMax" type="number" min="0" max="100" value="75"></div>
         <div><label>Gioco contro le pareti (mm)</label><input id="mLato" type="number" min="0" value="0"></div>
       </div>
     </details>
@@ -242,7 +243,11 @@ function valuta(reels, v, opz, schema, ordine){
       return base.map((p,k)=>{ const q={...p}; q.lane=lanes[k]; q.centrale=(lanes[k]==='C'); return q; });
     };
     const pile=costr(ordine);
-    if(pile && simula(pile,v,opz).lung<=v.L+TOLL){ const r=risultato(pile,true); r.fill=true; return r; }
+    if(pile && simula(pile,v,opz).lung<=v.L+TOLL){
+      const r=risultato(pile,true); r.fill=true;
+      const dm=Math.max(...pile.map(p=>p.d));
+      r.vuotoOk=(v.L-r.sim.lung)<=(opz.vuotoMax>0?opz.vuotoMax:0.75)*dm;   // vuoto in coda accettabile
+      return r; }
     const full=costr('geo'); let migl=[];
     if(full){ let n=full.length; while(n>0 && simula(full.slice(0,n),v,opz).lung>v.L) n--; migl=full.slice(0,n); }
     const r=risultato(migl,false); r.fill=true; return r;
@@ -309,7 +314,13 @@ function colonneAggiunte(r,v,opz){
 function migliore(a,b){ // true se a è meglio di b
   if(a.ok!==b.ok) return a.ok;
   if(!a.ok) return a.caricate>b.caricate;
-  if(a.fill && b.fill){                                   // solo singole: carico il più vicino al mezzo pieno
+  if(a.fill && b.fill){                                   // solo singole
+    if(!!a.vuotoOk!==!!b.vuotoOk) return !!a.vuotoOk;     // meglio uno schema con vuoto accettabile
+    if(a.vuotoOk){                                        // tra questi: meno centrali possibile, poi il più pieno
+      if(a.centrali!==b.centrali) return a.centrali<b.centrali;
+      if(Math.abs(a.sim.lung-b.sim.lung)>1) return a.sim.lung>b.sim.lung;
+      return a.leadPref;
+    }
     if(Math.abs(a.sim.lung-b.sim.lung)>1) return a.sim.lung>b.sim.lung;
     if(a.leadPref!==b.leadPref) return a.leadPref;
     return a.centrali<b.centrali;
@@ -393,7 +404,7 @@ function leggiTipi(){
 }
 function caricaVeicolo(k){ const v=VEICOLI[k]; $('vL').value=v.L; $('vW').value=v.W; }
 function leggiVeicolo(){ const k=$('veicolo').value; return {nome:VEICOLI[k].nome, tipo:VEICOLI[k].tipo, L:+$('vL').value, W:+$('vW').value}; }
-function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2', nCentrali:+$('nCentrali').value, suggerisci:$('suggerisci').value==='1'}; }
+function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2', nCentrali:+$('nCentrali').value, vuotoMax:(+$('vMax').value||75)/100, suggerisci:$('suggerisci').value==='1'}; }
 
 const COLORE={L:'#2a7f8e',R:'#3f6fb5',C:'#d9822b'};
 const LATO={L:'lato A',R:'lato B',C:'centro'};
