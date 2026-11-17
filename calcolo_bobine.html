@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calcolo carico bobine – container e bilico</title>
+<style>
+  :root{--bg:#eef2f4;--card:#fff;--ink:#16232b;--mut:#5f6f78;--line:#e1e7ea;--acc:#0f6b78;--acc2:#12909f;--navy:#0d2b3a;--warn:#b4501a;--ok:#2a7f3e;--sh:0 1px 2px rgba(13,43,58,.06),0 6px 18px rgba(13,43,58,.07)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  header{background:linear-gradient(120deg,#0b2533 0%,#0f4a5a 55%,#12909f 120%);color:#fff;padding:26px 24px 30px;position:relative;overflow:hidden}
+  header:after{content:"";position:absolute;right:-60px;top:-70px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06);box-shadow:-120px 90px 0 -40px rgba(255,255,255,.05)}
+  .hd{max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:16px;position:relative;z-index:1}
+  .logo{flex:none;width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.13);display:grid;place-items:center;border:1px solid rgba(255,255,255,.25)}
+  header h1{margin:0;font-size:25px;letter-spacing:-.2px;font-weight:700}
+  header p{margin:5px 0 0;opacity:.88;font-size:14px;max-width:680px}
+  main{max-width:1000px;margin:-14px auto 0;padding:0 16px 30px;position:relative;z-index:2}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px;box-shadow:var(--sh)}
+  .card h2{margin:0 0 14px;font-size:17px;font-weight:700;display:flex;align-items:center;gap:10px;color:var(--navy)}
+  .card h2 .n{flex:none;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;display:grid;place-items:center;box-shadow:0 2px 6px rgba(15,107,120,.35)}
+  table{border-collapse:collapse;width:100%}
+  th,td{padding:6px 8px;text-align:left}
+  th{font-size:11.5px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  input,select{font:inherit;padding:9px 11px;border:1.5px solid #d3dce0;border-radius:10px;width:100%;background:#fbfdfd;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+  input:focus,select:focus{outline:none;border-color:var(--acc2);box-shadow:0 0 0 3px rgba(18,144,159,.18);background:#fff}
+  button{font:inherit;font-weight:600;padding:10px 18px;border-radius:11px;border:1.5px solid var(--acc);background:#fff;color:var(--acc);cursor:pointer;transition:transform .08s,box-shadow .15s,background .15s}
+  button:hover{background:#eef8f9}
+  button:active{transform:translateY(1px)}
+  button.pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:none;font-size:16px;padding:13px 30px;box-shadow:0 6px 16px rgba(15,107,120,.35)}
+  button.pri:hover{box-shadow:0 8px 20px rgba(15,107,120,.45);background:linear-gradient(135deg,#0c5f6b,var(--acc2))}
+  button.x{padding:6px 11px;border-color:#d3dce0;color:var(--mut)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+  label{display:block;font-size:12px;color:var(--mut);margin-bottom:4px;font-weight:600}
+  details{margin-top:14px} summary{cursor:pointer;color:var(--acc);font-weight:600}
+  .big{font-size:22px;font-weight:700}
+  .hero{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 14px}
+  .tile{flex:1 1 150px;border-radius:14px;padding:14px 18px;color:#fff;position:relative;overflow:hidden}
+  .tile b{display:block;font-size:42px;line-height:1;font-weight:800;letter-spacing:-1px}
+  .tile span{display:block;margin-top:6px;font-size:13px;opacity:.92;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .tile:after{content:"";position:absolute;right:-24px;bottom:-24px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.14)}
+  .t1{background:linear-gradient(135deg,#0f6b78,#12909f)} .t2{background:linear-gradient(135deg,#3b66a8,#5b8bd6)} .t3{background:linear-gradient(135deg,#c9701f,#eb9a45)} .t4{background:linear-gradient(135deg,#34495e,#5d7a93)}
+  .kpi{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .kpi span{background:#edf3f5;border-radius:999px;padding:5px 13px;font-size:13px;color:#34484f}
+  .kpi span.hl{background:#d9eef1;font-weight:700;color:var(--acc)}
+  .warn{background:#fff4ea;border:1px solid #f3cfae;border-left:5px solid #e58a3a;color:#8a3d10;border-radius:12px;padding:11px 15px;margin:10px 0;font-size:14px}
+  .info{background:#eef8f9;border:1px solid #cbe6ea;border-left:5px solid var(--acc2);border-radius:12px;padding:11px 15px;margin:10px 0;font-size:14px}
+  .note{color:var(--mut);font-size:13px}
+  svg{width:100%;height:auto;display:block;margin:8px 0}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px}
+  .legend span{font-size:13px;color:#34484f}
+  .legend i{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:5px;vertical-align:-2px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .cmp td,.cmp th{border-bottom:1px solid var(--line);font-size:14px}
+  .cmp tr.sel td{background:#e6f5ea}
+  .seq td{font-size:13px;padding:5px 8px;border-bottom:1px solid var(--line)}
+  .seq tr:nth-child(even) td{background:#f7fafb}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+  @media(max-width:600px){header h1{font-size:20px}.card{padding:16px}}
+  .dl{display:none;margin-top:12px;background:rgba(255,255,255,.16);color:#fff;border:1.5px solid rgba(255,255,255,.45);padding:8px 16px;font-size:14px}
+  .dl:hover{background:rgba(255,255,255,.28)}
+  .pr-only{display:none}
+  @media print{
+    header,#inputs,.noprint{display:none!important}
+    body{background:#fff;font-size:13px}
+    main{margin:0;padding:0;max-width:none}
+    #ris>*:not(.rep):not(.dis){display:none!important}
+    .dis{box-shadow:none;border:none;padding:0;margin-top:6px}
+    .dis h2{font-size:15px}
+    svg{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .rep{box-shadow:none;border:none;padding:0}
+    .rep .legend{margin-top:8px}
+    .pr-only{display:block;border-bottom:3px solid var(--acc);padding-bottom:8px;margin-bottom:14px}
+    .pr-only h1{margin:0;font-size:22px;color:var(--navy)}
+    .pr-only p{margin:3px 0 0;color:var(--mut);font-size:12.5px}
+    .tile,.hero,.warn,.info,.kpi span,.legend i{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4;margin:14mm}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <div class="logo"><svg viewBox="0 0 48 48" width="36" height="36" style="margin:0"><ellipse cx="24" cy="37" rx="15" ry="5.5" fill="#fff" fill-opacity=".5"/><path d="M9 37V15c0-3 6.7-5.5 15-5.5S39 12 39 15v22c0 3-6.7 5.5-15 5.5S9 40 9 37Z" fill="#fff"/><ellipse cx="24" cy="15" rx="15" ry="5.5" fill="#cfeef2"/><ellipse cx="24" cy="15" rx="5" ry="2" fill="#0f6b78"/></svg></div>
+    <div><h1>Calcolo carico bobine</h1><p>Container e bilico: quante colonne doppie, quante singole e dove mettere le centrali per riempire il mezzo.</p><button id="scarica" class="dl" type="button">⬇ Scarica il programma (funziona anche offline)</button></div>
+  </div>
+</header>
+<main>
+<div id="inputs">
+  <section class="card">
+    <h2><span class="n">1</span>Bobine da caricare</h2>
+    <table id="tab">
+      <thead><tr><th>Diametro (mm)</th><th>Peso di 1 bobina (kg, per la regola pesi)</th><th>Quantità</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p style="margin:10px 0 0"><button id="add" type="button">+ Aggiungi altro diametro</button></p>
+    <p class="note">Bobine in piedi: a terra occupano un cerchio pari al diametro. Una <b>doppia</b> = due bobine sovrapposte, una <b>singola</b> = una bobina sola (stesso ingombro a terra). L'altezza non conta.</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span>Mezzo e metodo di carico</h2>
+    <div class="grid">
+      <div><label>Tipo di mezzo</label><select id="veicolo"></select></div>
+      <div><label>Lunghezza interna (mm)</label><input id="vL" type="number" min="1"></div>
+      <div><label>Larghezza interna (mm)</label><input id="vW" type="number" min="1"></div>
+      <div><label>Regola pesi (solo bilico)</label><select id="pesi"><option value="1">Sì: leggeri verso la cabina, pesanti sugli assi</option><option value="0">No</option></select></div>
+      <div><label>Zona assi: ultimi … mm del bilico</label><input id="zonaAssi" type="number" min="0" value="4000"></div>
+      <div><label>Tipo di carico</label><select id="soloSing"><option value="0">Doppie e singole (riempi il mezzo)</option><option value="2">Tutte doppie (centrali solo se servono)</option><option value="1">Solo bobine singole</option></select></div>
+      <div><label>Singola in più (se dispari) in fondo (solo bilico)</label><select id="dispari"><option value="1">Sì</option><option value="0">No</option></select></div>
+      <div><label>Schema di carico</label><select id="schema"><option value="auto">Automatico (prova anche le colonne centrali)</option><option value="LR">Solo alternate lato A – lato B</option></select></div>
+    </div>
+    <p class="note">Con la regola pesi, se possibile senza usare più doppie, si carica dal più leggero (verso la cabina) al più pesante (verso gli assi, in fondo al bilico). Metodo: la 1ª colonna/singola va a filo della parete (lato A), la 2ª a filo della parete opposta (lato B) e viene spinta in avanti fino a toccare quelle già caricate, e così via. Misure standard: sostituiscile con quelle reali se diverse.</p>
+    <details>
+      <summary>Impostazioni avanzate (giochi: 0 = a contatto)</summary>
+      <div class="grid" style="margin-top:10px">
+        <div><label>Gioco tra bobine (mm)</label><input id="gPile" type="number" min="0" value="0"></div>
+        <div><label>Gioco contro le pareti (mm)</label><input id="mLato" type="number" min="0" value="0"></div>
+      </div>
+    </details>
+    <p style="margin:14px 0 0"><button id="calcola" class="pri" type="button">Calcola il carico</button></p>
+  </section>
+</div>
+<div id="ris"></div>
+</main>
+
+<script>
+//CORE-START
+const VEICOLI = {
+  c20:   {nome:"Container 20'",               tipo:"container", L:5898,  W:2352},
+  c40:   {nome:"Container 40'",               tipo:"container", L:12032, W:2352},
+  c40hc: {nome:"Container 40' High Cube",     tipo:"container", L:12032, W:2352},
+  bilico:{nome:"Bilico (semirimorchio 13,6 m)", tipo:"bilico",  L:13600, W:2450}
+};
+
+// tipi: [{d: diametro, kg, qta}] -> bobine ordinate per diametro decrescente
+function espandi(tipi){
+  const u=[]; tipi.forEach(t=>{ for(let i=0;i<t.qta;i++) u.push({d:t.d, kg:t.kg||0}); });
+  return u.sort((a,b)=>b.d-a.d||b.kg-a.kg).map((r,i)=>({...r,id:i+1}));
+}
+// D doppie (le prime 2D bobine a due a due) poi le singole. In ogni doppia la bobina più pesante sta sotto.
+// ordine 'peso': le pile vanno dalla più leggera (verso la cabina) alla più pesante (verso gli assi).
+function costruisciPile(reels,D,ordine,dispariFondo){
+  const mk=rs=>{ rs=rs.slice().sort((a,b)=>b.kg-a.kg); return {reels:rs, d:Math.max(...rs.map(r=>r.d)), kg:rs.reduce((s,r)=>s+r.kg,0)}; };
+  const pile=[];
+  for(let i=0;i<D;i++) pile.push(mk([reels[2*i],reels[2*i+1]]));
+  for(let j=2*D;j<reels.length;j++) pile.push(mk([reels[j]]));
+  if(ordine==='peso') pile.sort((a,b)=>a.kg-b.kg || b.d-a.d);
+  // singole dispari: la singola in più va in fondo (verso le porte)
+  if(dispariFondo){
+    const idx=[]; pile.forEach((p,i)=>{ if(p.reels.length===1) idx.push(i); });
+    if(idx.length%2===1){
+      const i=idx[idx.length-1];
+      if(i!==pile.length-1){ const [x]=pile.splice(i,1); pile.push(x); }
+      pile[pile.length-1].dispari=true;
+    }
+  }
+  return pile;
+}
+
+// Simula il carico: ogni pila ha una corsia (L = a filo parete lato A, R = a filo parete lato B, C = centrale)
+// e viene spinta verso la testata finché tocca una pila già caricata (o la testata).
+function simula(pile, v, opz){
+  const g=opz.gapPile, ml=opz.margineLato, placed=[];
+  pile.forEach(p=>{
+    const lane=p.lane, d=p.d;
+    const y= lane==='L' ? ml+d/2 : lane==='R' ? v.W-ml-d/2 : v.W/2;
+    let x=ml+d/2, tocca=-1;
+    placed.forEach((q,j)=>{
+      const dy=Math.abs(y-q.y), R=(d+q.d)/2+g;
+      if(dy<R){ const xx=q.x+Math.sqrt(R*R-dy*dy); if(xx>x){x=xx; tocca=j;} }
+    });
+    placed.push({d, y, x, lane, tocca, doppia:p.reels.length>1, reels:p.reels, kg:p.kg||0, dispari:!!p.dispari, finale:!!p.centrale});
+  });
+  const lung=placed.length? Math.max(...placed.map(p=>p.x+p.d/2))+ml : 0;
+  return {placed, lung};
+}
+
+// Schemi di carico: [centrale in testa] + coppie sfalsate A–B, con una centrale ogni m coppie e/o centrali in fondo.
+//   lead = 1 centrale subito verso la cabina; m = ogni quante coppie ne va una centrale (0 = mai); trail = centrali in fondo.
+function schemiEstesi(){
+  const out=[];
+  for(const lead of [0,1]) for(const m of [0,1,2,3,4,5,6,8]) for(const trail of [0,1,2]){
+    if(m===0 && lead===0 && trail===0) out.push({lead,m,trail,id:'LR'});
+    else out.push({lead,m,trail,id:`${lead?'C':''}${m?'/'+m:''}${trail?'+'+trail:''}`||'LR'});
+  }
+  return out;
+}
+const nomeSchema=sc=>{
+  const t=[]; if(sc.lead) t.push('1 centrale in testa');
+  t.push('coppie A–B');
+  if(sc.m) t.push(`centrale ogni ${sc.m} ${sc.m===1?'coppia':'coppie'}`);
+  if(sc.trail) t.push(`${sc.trail} ${sc.trail===1?'centrale':'centrali'} in fondo`);
+  return t.join(', ');
+};
+// Corsie per P pile: C, poi coppie L-R, ogni m coppie una C, poi le C finali
+function corsie(sc,P){
+  const out=[], tail=Math.min(sc.trail,P); let body=P-tail;
+  for(let t=0;t<sc.lead && body>0;t++){ out.push('C'); body--; }
+  let coppie=0;
+  while(body>0){
+    out.push('L'); body--; if(body>0){ out.push('R'); body--; }
+    coppie++;
+    if(sc.m>0 && coppie%sc.m===0 && body>0){ out.push('C'); body--; }
+  }
+  for(let t=0;t<tail;t++) out.push('C');
+  return out;
+}
+// Regola: due centrali non sono mai a contatto: tra l'una e l'altra almeno 2 pile sfalsate (lati A/B)
+function centraliOk(lanes){ let gap=99; for(const l of lanes){ if(l==='C'){ if(gap<2) return false; gap=0; } else gap++; } return true; }
+// Le colonne centrali sono sempre DOPPIE (2 bobine sovrapposte). Le altre pile occupano le corsie L/R nell'ordine di carico.
+function costruisciSchema(reels,D,ordine,df,sc){
+  const ordered=costruisciPile(reels,D,ordine,df), P=ordered.length, lanes=corsie(sc,P);
+  const c=lanes.filter(x=>x==='C').length;
+  if(c>D || !centraliOk(lanes)) return null;
+  const rest=ordered.slice(), cent=[];
+  for(let i=rest.length-1;i>=0 && cent.length<c;i--) if(rest[i].reels.length>1){ cent.unshift(rest[i]); rest.splice(i,1); }
+  if(cent.length<c) return null;
+  let ci=0, bi=0;
+  const out=lanes.map(l=> l==='C' ? cent[ci++] : rest[bi++]);
+  out.forEach((p,k)=>{ p.lane=lanes[k]; p.centrale=(lanes[k]==='C'); });
+  return out;
+}
+
+// Per uno schema trova il minimo numero di doppie che fa stare tutte le bobine nel mezzo (= mezzo riempito)
+function valuta(reels, v, opz, schema, ordine){
+  const N=reels.length, maxD=Math.floor(N/2), df=v.tipo==='bilico' && !!opz.dispari;
+  const leadPref=v.tipo==='container' && schema.lead>0;
+  const prefisso=(pile,n)=>pile.slice(0,n);
+  const risultato=(pile,ok)=>{
+    const sim=simula(pile,v,opz), caricate=pile.reduce((s,p)=>s+p.reels.length,0);
+    return {ok, schema, D:pile.filter(p=>p.reels.length>1).length, S:pile.filter(p=>p.reels.length===1).length,
+      pile, sim, caricate, fuori:N-caricate, extra:0, ordine:ok?ordine:'geo', leadPref,
+      centrali:sim.placed.filter(p=>p.lane==='C').length};
+  };
+  // candidati: (solo singole) le uniche doppie sono le colonne centrali; (altrimenti) D da 0 a N/2
+  const candidati=[];
+  if(opz.soloSingole){
+    for(let c=0;c<=Math.min(maxD,8);c++){ const P=N-c; if(corsie(schema,P).filter(x=>x==='C').length===c) candidati.push(c); }
+  } else for(let D=0;D<=maxD;D++) candidati.push(D);
+  const prova=D=>{ const pile=costruisciSchema(reels,D,ordine,df,schema); return (pile && simula(pile,v,opz).lung<=v.L) ? pile : null; };
+  if(opz.soloSingole){
+    for(const D of candidati){ const pile=prova(D); if(pile) return risultato(pile,true); }
+  } else if(opz.tutteDoppie){
+    const pile=prova(maxD); if(pile) return risultato(pile,true);   // tutte in colonne doppie; le centrali compaiono solo se servono per farle entrare
+  } else if(prova(maxD)){
+    let lo=0, hi=maxD;                       // più doppie = più corto: si cerca il minimo D che entra
+    while(lo<hi){ const mid=(lo+hi)>>1; if(prova(mid)) hi=mid; else lo=mid+1; }
+    return risultato(prova(lo),true);
+  }
+  // non entra tutto: si carica il massimo possibile con questo schema
+  let migliorePile=[];
+  const provaD=opz.soloSingole ? (candidati.length?candidati:[0]) : [maxD];
+  for(const D of provaD){
+    const full=costruisciSchema(reels,D,'geo',df,schema); if(!full) continue;
+    let n=full.length; while(n>0 && simula(prefisso(full,n),v,opz).lung>v.L) n--;
+    const pp=prefisso(full,n);
+    if(pp.reduce((s,p)=>s+p.reels.length,0)>migliorePile.reduce((s,p)=>s+p.reels.length,0)) migliorePile=pp;
+  }
+  return risultato(migliorePile,false);
+}
+// Quante singole in più ci starebbero ancora in fondo (alternate A/B)
+function spazioExtra(r,v,opz){
+  if(!r.ok) return 0;
+  const last=r.pile.length?r.pile[r.pile.length-1].d:0; if(!last) return 0;
+  let extra=0;
+  while(extra<60){
+    const p2=r.pile.concat(Array.from({length:extra+1},(_,t)=>({reels:[{d:last}],d:last,kg:0,lane:t%2?'R':'L'})));
+    if(simula(p2,v,opz).lung<=v.L) extra++; else break;
+  }
+  return extra;
+}
+// Quante colonne centrali (doppie) servirebbero ancora per chiudere lo spazio libero.
+// Prova a metterne una subito verso la cabina e le altre in mezzo/in fondo; tolleranza di pochi mm sul limite.
+const TOLL=20;
+function colonneAggiunte(r,v,opz){
+  const pile0=r.pile; if(!r.ok || !pile0.length) return {add:[],pile:pile0,sim:null,fuoriMm:0};
+  const last=pile0[pile0.length-1].d;
+  let best=null;
+  for(let n=8;n>=1 && !best;n--){
+    for(const lead of [2,1,0]) for(const m of [0,1,2,3,4,5,6,8]) for(const trail of [0,1,2,3]){
+      const sc={lead,m,trail}, P=pile0.length+n, lanes=corsie(sc,P);
+      if(lanes.filter(x=>x==='C').length!==n || !centraliOk(lanes)) continue;
+      let bi=0;
+      const nuovi=[], pile=lanes.map(l=>{
+        if(l==='C'){ const c={reels:[{d:last},{d:last}],d:last,kg:0,lane:'C',centrale:true,aggiunta:true}; nuovi.push(c); return c; }
+        const q={...pile0[bi++]}; q.lane=l; return q; });
+      const sim=simula(pile,v,opz);
+      // preferenza: centrali il più possibile verso la ralla (testata); poi lunghezza minore
+      const pesoPos=lanes.reduce((a,l,k)=>a+(l==='C'?k:0),0);
+      if(sim.lung<=v.L+TOLL && (!best || pesoPos<best.pesoPos || (pesoPos===best.pesoPos && sim.lung<best.sim.lung-1))) best={add:nuovi,pile,sim,fuoriMm:Math.max(0,sim.lung-v.L),sc,pesoPos};
+    }
+  }
+  return best||{add:[],pile:pile0,sim:null,fuoriMm:0};
+}
+function migliore(a,b){ // true se a è meglio di b
+  if(a.ok!==b.ok) return a.ok;
+  if(!a.ok) return a.caricate>b.caricate;
+  if(a.D!==b.D) return a.D<b.D;
+  if(a.centrali!==b.centrali) return a.centrali<b.centrali;   // centrali solo se servono davvero
+  if(a.leadPref!==b.leadPref) return a.leadPref;          // container: se servono, meglio iniziare con una centrale verso la cabina
+  if(Math.abs(a.sim.lung-b.sim.lung)>1) return a.sim.lung<b.sim.lung;
+  return (a.schema.lead+(a.schema.m?1:0)+a.schema.trail)<(b.schema.lead+(b.schema.m?1:0)+b.schema.trail);
+}
+
+// Baricentro e quota di peso nella zona assi (gli ultimi zonaAssi mm verso le porte)
+function analisiPesi(res, v, opz){
+  const pl=res.sim.placed, kgTot=pl.reduce((s,p)=>s+p.kg,0);
+  if(!kgTot) return null;
+  const cg=pl.reduce((s,p)=>s+p.kg*p.x,0)/kgTot, zonaInizio=v.L-opz.zonaAssi;
+  const inZona=pl.filter(p=>p.x>=zonaInizio).reduce((s,p)=>s+p.kg,0);
+  const shift=Math.max(0,v.L-res.sim.lung);
+  const inZonaSp=pl.filter(p=>p.x+shift>=zonaInizio).reduce((s,p)=>s+p.kg,0);
+  const pr=pl.filter(p=>!p.dispari), ordinato=pr.every((p,k)=>k===0||p.kg>=pr[k-1].kg-1e-9);
+  return {kgTot, cg, cgPct:cg/v.L, zonaInizio, inZona, quotaZona:inZona/kgTot, shift, cgSpostato:cg+shift, quotaZonaSpostata:inZonaSp/kgTot, ordinato};
+}
+
+function pianifica(tipi, v, opz){
+  const pesiNoti=tipi.every(t=>t.kg>0);   // senza pesi: bobine tutte uguali (la doppia pesa il doppio della singola)
+  const reels=espandi(tipi.map(t=>({...t,kg:pesiNoti?t.kg:1}))), Wutile=v.W-2*opz.margineLato;
+  const usaPeso=v.tipo==='bilico' && !!opz.pesi;
+  const nonCaricabili=reels.filter(r=>r.d>Wutile||r.d>v.L);
+  const ok=reels.filter(r=>r.d<=Wutile&&r.d<=v.L);
+  if(!ok.length) return {reels:ok, tot:reels.length, nonCaricabili, risultati:[], best:null, lr:null, scelto:null, Wutile, usaPeso, pesiNoti, pesi:null};
+  const risultati=schemiEstesi().map(s=>{
+    const geo=valuta(ok,v,opz,s,'geo');
+    if(!usaPeso) return geo;
+    const pe=valuta(ok,v,opz,s,'peso');
+    if(pe.ok && (!geo.ok || pe.D<=geo.D)) return pe;     // ordine per peso possibile senza perdere il riempimento
+    geo.pesoRinunciato=true; return geo;
+  });
+  const lr=risultati.find(r=>r.schema.id==='LR');
+  let best=risultati[0]; risultati.forEach(r=>{ if(migliore(r,best)) best=r; });
+  const scelto = opz.schema==='LR' ? lr : best;
+  risultati.sort((a,b)=> migliore(a,b)?-1:migliore(b,a)?1:0);
+  // rapporto tra le bobine consecutive (affiancata / sfalsata)
+  scelto.sim.placed.forEach((p,k)=>{
+    p.rel=''; if(k>0){ const q=scelto.sim.placed[k-1];
+      if(p.lane!==q.lane){ const dx=p.x-q.x; p.rel = Math.abs(dx)<2 ? {t:'affiancata',n:k} : {t:'sfalsata',n:k,dx}; } }
+  });
+  scelto.extra=spazioExtra(scelto,v,opz);
+  const agg=colonneAggiunte(scelto,v,opz);
+  scelto.aggiunte=agg.add; scelto.simAgg=agg.add.length?agg.sim:null; scelto.aggInfo=agg;
+  const pesi=(usaPeso && scelto.ok) ? analisiPesi(scelto,v,opz) : null;
+  return {reels:ok, tot:reels.length, nonCaricabili, risultati, best, lr, scelto, Wutile, usaPeso, pesiNoti, pesi};
+}
+//CORE-END
+
+/* ---------- interfaccia ---------- */
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('it-IT');
+const fmtM=n=>(n/1000).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=x=>Math.round(x*100)+'%';
+
+function addRiga(d='',kg='',q=''){
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input type="number" min="1" value="${d}"></td><td><input type="number" min="0" value="${kg}"></td><td><input type="number" min="1" value="${q}"></td><td><button class="x" type="button" title="Togli">✕</button></td>`;
+  tr.querySelector('button').onclick=()=>{ if($('tab').tBodies[0].rows.length>1) tr.remove(); };
+  $('tab').tBodies[0].appendChild(tr);
+}
+function leggiTipi(){
+  const tipi=[];
+  for(const tr of $('tab').tBodies[0].rows){
+    const [d,kg,q]=[...tr.querySelectorAll('input')].map(i=>parseFloat(i.value));
+    if(!d && !q) continue;
+    if(!(d>0)||!(q>0)) throw new Error('Per ogni diametro servono diametro e quantità maggiori di zero.');
+    tipi.push({d, kg:kg>0?kg:0, qta:Math.round(q)});
+  }
+  if(!tipi.length) throw new Error('Inserisci almeno un diametro.');
+  return tipi;
+}
+function caricaVeicolo(k){ const v=VEICOLI[k]; $('vL').value=v.L; $('vW').value=v.W; }
+function leggiVeicolo(){ const k=$('veicolo').value; return {nome:VEICOLI[k].nome, tipo:VEICOLI[k].tipo, L:+$('vL').value, W:+$('vW').value}; }
+function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2'}; }
+
+const COLORE={L:'#2a7f8e',R:'#3f6fb5',C:'#d9822b'};
+const LATO={L:'lato A',R:'lato B',C:'centro'};
+
+function svgPianta(res,v,opz,piano){
+  const conAgg=!!res.simAgg, placed=conAgg?res.simAgg.placed:res.sim.placed;
+  const S=900/v.L, pad=20, Wd=v.W*S, tot=900+2*pad;
+  let s=`<svg viewBox="0 0 ${tot} ${Wd+2*pad+40}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Arial">`;
+  s+=`<defs>
+    <radialGradient id="gL" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#58b3c2"/><stop offset="1" stop-color="#1f6f7e"/></radialGradient>
+    <radialGradient id="gR" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#7ca4e0"/><stop offset="1" stop-color="#2f58a0"/></radialGradient>
+    <radialGradient id="gC" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#f6b36a"/><stop offset="1" stop-color="#c3651a"/></radialGradient>
+    <linearGradient id="gF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f4ec"/><stop offset="1" stop-color="#e6e1d4"/></linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feGaussianBlur in="SourceAlpha" stdDeviation="2.2"/><feOffset dy="2.5" result="o"/><feComponentTransfer><feFuncA type="linear" slope=".38"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>`;
+  s+=`<rect x="${pad-5}" y="${pad-5}" width="${v.L*S+10}" height="${Wd+10}" rx="8" fill="#5b6770"/>`;
+  s+=`<rect x="${pad}" y="${pad}" width="${v.L*S}" height="${Wd}" rx="4" fill="url(#gF)"/>`;
+  s+=`<rect x="${pad-5}" y="${pad-5}" width="7" height="${Wd+10}" rx="3" fill="#0d2b3a"/>`;
+  if(piano.usaPeso && opz.zonaAssi>0){
+    const x0=pad+Math.max(0,v.L-opz.zonaAssi)*S;
+    s+=`<rect x="${x0}" y="${pad}" width="${pad+v.L*S-x0}" height="${Wd}" fill="#e9d8c3" fill-opacity=".55"/>`;
+    s+=`<text x="${(x0+pad+v.L*S)/2}" y="${pad+Wd+12}" text-anchor="middle" font-size="11" fill="#8a5a2b" font-weight="700">zona assi (peso maggiore)</text>`;
+    s+=`<text x="${pad+4}" y="${pad+Wd+12}" font-size="11" fill="#555" transform="translate(60,0)">verso la cabina: peso minore</text>`;
+  }
+  s+=`<text x="${pad+10}" y="${pad-10}" font-size="11" font-weight="700" fill="#2a7f8e">▲ lato A</text><text x="${pad+10}" y="${pad+Wd+19}" font-size="11" font-weight="700" fill="#3f6fb5">▼ lato B</text>`;
+  placed.forEach((p,k)=>{
+    const cx=pad+p.x*S, cy=pad+p.y*S, R=p.d/2*S, col=COLORE[p.lane], fs=Math.max(7,Math.min(12,R*0.26));
+    const agg=conAgg && res.aggInfo.pile[k] && res.aggInfo.pile[k].aggiunta;
+    if(agg){
+      s+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="${col}" fill-opacity=".30" stroke="${col}" stroke-width="3" stroke-dasharray="2 4"/>`;
+      s+=`<text x="${cx}" y="${cy-1}" text-anchor="middle" font-size="${fs}" fill="${col}" font-weight="800">CENTRALE</text><text x="${cx}" y="${cy+fs*1.2}" text-anchor="middle" font-size="${fs*0.85}" fill="${col}">da aggiungere</text>`;
+    } else if(p.doppia){
+      s+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#g${p.lane})" stroke="#fff" stroke-width="1.5" filter="url(#sh)"/>`;
+      s+=`<circle cx="${cx}" cy="${cy}" r="${R*0.72}" fill="none" stroke="#fff" stroke-width="2"/>`;
+      s+=`<text x="${cx}" y="${cy+fs*0.35}" text-anchor="middle" font-size="${fs}" fill="#fff" font-weight="800">DOPPIA</text>`;
+      if(piano.pesiNoti) s+=`<text x="${cx}" y="${cy+fs*1.5}" text-anchor="middle" font-size="${fs*0.8}" fill="#fff">${fmt(p.kg)} kg</text>`;
+    } else {
+      s+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="${col}" fill-opacity=".22" stroke="${col}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
+      s+=`<text x="${cx}" y="${cy+fs*0.35}" text-anchor="middle" font-size="${fs}" fill="${col}" font-weight="800">SINGOLA</text>`;
+      if(piano.pesiNoti) s+=`<text x="${cx}" y="${cy+fs*1.5}" text-anchor="middle" font-size="${fs*0.8}" fill="#333">${fmt(p.kg)} kg</text>`;
+    }
+    s+=`<circle cx="${cx}" cy="${cy-R*0.62}" r="${Math.max(7,R*0.17)}" fill="#fff" stroke="${col}"/><text x="${cx}" y="${cy-R*0.62+3.5}" text-anchor="middle" font-size="${Math.max(8,R*0.2)}" font-weight="700" fill="#222">${k+1}</text>`;
+  });
+  s+=`<text x="${pad}" y="${Wd+pad+34}" font-size="11" fill="#555" text-anchor="start" transform="translate(110,0)">◄ testata (lato cabina)</text>`;
+  s+=`<text x="${pad+v.L*S}" y="${Wd+pad+34}" font-size="11" fill="#555" text-anchor="end">porte (retro) ►</text></svg>`;
+  return s;
+}
+
+function descSeq(res,v,opz,piano){
+  const conKg=piano.pesiNoti;
+  let h=`<table class="seq"><thead><tr><th>N.</th><th>Lato</th><th>Tipo</th><th>Ø</th>${conKg?'<th>Peso</th>':''}<th>Come si carica</th></tr></thead><tbody>`;
+  res.sim.placed.forEach((p,k)=>{
+    let come = p.lane==='C' ? 'centrata' : `a filo della parete ${LATO[p.lane]}`;
+    come += p.tocca>=0 ? `, spinta fino a toccare la n. ${p.tocca+1}` : `, spinta contro la testata`;
+    if(p.rel) come += p.rel.t==='affiancata' ? ` · <b>affiancata</b> alla n. ${p.rel.n}` : ` · <b>sfalsata</b> di ${fmt(p.rel.dx)} mm (verso le porte) rispetto alla n. ${p.rel.n}`;
+    if(p.finale) come += ` · <b>colonna centrale (2 bobine sovrapposte), appoggiata alla pila più avanzata</b>`;
+    if(p.dispari) come += ` · <b>singola in più, messa in fondo al camion</b>`;
+    if(piano.usaPeso && p.x>=v.L-opz.zonaAssi) come += ` · <b>sugli assi</b>`;
+    h+=`<tr><td>${k+1}</td><td><span class="dot" style="background:${COLORE[p.lane]}"></span>${LATO[p.lane]}</td><td>${p.doppia?'<b>DOPPIA</b>':'singola'}</td><td>${fmt(p.d)}</td>${conKg?`<td>${fmt(p.kg)} kg</td>`:''}<td>${come}</td></tr>`;
+  });
+  return h+`</tbody></table>`;
+}
+
+function blocchiPesi(piano,r,v,opz){
+  const w=piano.pesi; if(!w) return '';
+  let h='';
+  if(r.pesoRinunciato) h+=`<div class="warn"><b>Regola pesi non applicabile del tutto:</b> per tenere il mezzo pieno con questo schema non è possibile ordinare dal più leggero al più pesante senza usare più doppie. Si è dato la precedenza al riempimento.</div>`;
+  else if(!w.ordinato) h+=`<div class="warn"><b>Regola pesi non rispettata del tutto:</b> le colonne centrali (doppie) stanno in mezzo al carico, quindi il peso non cresce sempre dalla cabina verso gli assi.</div>`;
+  else if(w.ordinato) h+=`<div class="info"><b>Regola pesi rispettata:</b> dalla cabina verso gli assi il peso di ogni posizione non diminuisce${r.S>0&&r.D>0&&!piano.pesiNoti?` (prima le ${r.S} singole, poi le ${r.D} doppie)`:''}.</div>`;
+  let t=piano.pesiNoti
+    ? `Peso totale ${fmt(w.kgTot)} kg · baricentro a ${fmtM(w.cg)} m dalla testata (${pct(w.cgPct)} della lunghezza) · nella zona assi (ultimi ${fmtM(opz.zonaAssi)} m) ci sono ${fmt(w.inZona)} kg, il ${pct(w.quotaZona)} del carico.`
+    : `Con bobine di peso uguale: baricentro a ${fmtM(w.cg)} m dalla testata (${pct(w.cgPct)} della lunghezza) e ${pct(w.quotaZona)} del carico nella zona assi (ultimi ${fmtM(opz.zonaAssi)} m). Inserisci i pesi per avere i kg.`;
+  h+=`<div class="info"><b>Pesi sul bilico:</b> ${t}</div>`;
+  if(w.shift>50) h+=`<div class="info">Il carico finisce a ${fmtM(r.sim.lung)} m e lascia ${fmtM(w.shift)} m liberi verso le porte: spostando tutto il carico verso il retro il baricentro passa a ${fmtM(w.cgSpostato)} m e la quota sugli assi sale al ${pct(w.quotaZonaSpostata)}.</div>`;
+  h+=`<div class="note">Indicazione geometrica: i carichi esatti sugli assi dipendono da ralla, posizione degli assi e tara del mezzo.</div>`;
+  return h;
+}
+
+function testoRiepilogo(nome,piano,v){
+  const r=piano.scelto;
+  let t=`CARICO BOBINE – ${nome}\nSchema ${nomeSchema(r.schema)}: ${r.D} doppie + ${r.S} singole = ${r.caricate} bobine; ${r.pile.length} posizioni; centrali ${r.centrali}; lunghezza usata ${fmt(r.sim.lung)} di ${fmt(v.L)} mm\n`;
+  if(piano.pesi) t+=`Pesi: baricentro a ${fmtM(piano.pesi.cg)} m dalla testata, ${pct(piano.pesi.quotaZona)} nella zona assi\n`;
+  r.sim.placed.forEach((p,k)=>{ t+=`  ${k+1}. ${LATO[p.lane]} – ${p.doppia?'DOPPIA':'singola'} Ø${p.d}${piano.pesiNoti?` ${fmt(p.kg)} kg`:''}${p.rel?` (${p.rel.t}${p.rel.dx?' '+fmt(p.rel.dx)+' mm':''})`:''}\n`; });
+  return t;
+}
+
+(function(){
+  const b=document.getElementById('scarica'); if(!b || !/^https?:/.test(location.protocol)) return;
+  b.style.display='inline-block';
+  b.onclick=()=>{
+    fetch(location.href.split('#')[0]).then(r=>r.blob()).then(bl=>{
+      const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download='calcolo-bobine.html';
+      document.body.appendChild(a); a.click(); a.remove();
+    }).catch(()=>{ alert('Per salvare il programma: tasto destro sulla pagina > Salva con nome (oppure Ctrl+S).'); });
+  };
+})();
+function calcola(){
+  const out=$('ris'); out.innerHTML='';
+  let tipi,v;
+  try{ tipi=leggiTipi(); v=leggiVeicolo(); if(!(v.L>0&&v.W>0)) throw new Error('Inserisci lunghezza e larghezza interne del mezzo.'); }
+  catch(e){ out.innerHTML=`<div class="warn">${e.message}</div>`; return; }
+  const opz=leggiOpz(), piano=pianifica(tipi,v,opz), r=piano.scelto, best=piano.best, lr=piano.lr;
+  const desc=tipi.map(t=>`${t.qta} × Ø${fmt(t.d)} mm`).join(' · ');
+  let h=`<section class="card rep"><div class="pr-only"><h1>Calcolo carico bobine – ${v.nome}</h1><p>${new Date().toLocaleDateString('it-IT')} · ${desc} · interno ${fmt(v.L)} × ${fmt(v.W)} mm</p></div>`;
+  if(!piano.reels.length) h+=`<div class="big">Nessuna bobina caricabile</div>`;
+  else {
+    h+=`<div class="hero"><div class="tile t1"><b>${r.D}</b><span>colonne doppie</span></div><div class="tile t2"><b>${r.S}</b><span>singole</span></div><div class="tile t3"><b>${r.centrali}${r.aggiunte&&r.aggiunte.length?' <small style="font-size:20px;font-weight:700">+'+r.aggiunte.length+'</small>':''}</b><span>centrali${r.aggiunte&&r.aggiunte.length?' (+ aggiunte)':''}</span></div><div class="tile t4"><b>${r.caricate}</b><span>bobine caricate</span></div></div>`;
+    h+=`<div class="kpi"><span class="hl">${v.nome}</span><span class="hl">${r.caricate} bobine = ${r.pile.length} posizioni</span><span>schema ${nomeSchema(r.schema)}</span><span>${r.centrali} centrali</span><span>lunghezza usata ${fmt(r.sim.lung)} / ${fmt(v.L)} mm</span></div>`;
+    if(r.ok){
+      if(r.aggiunte && r.aggiunte.length){ const n=r.aggiunte.length, ai=r.aggInfo;
+        const pos=ai.pile.map((p,k)=>p.aggiunta?k+1:0).filter(x=>x);
+        h+=`<div class="warn"><b>Il mezzo non è pieno:</b> con le sole ${r.caricate} bobine restano ${fmt(v.L-r.sim.lung)} mm in coda. Per riempirlo e bloccare il carico servono ancora <b>${n===1?'1 colonna centrale':n+' colonne centrali'}</b> (${2*n} bobine in più, a due a due sovrapposte), posizione n. ${pos.join(', ')}${pos[0]===1?' (la prima subito verso la cabina)':''}, appoggiate alla pila più avanzata. Sono disegnate tratteggiate in arancione; lunghezza totale ${fmt(ai.sim.lung)} di ${fmt(v.L)} mm${ai.fuoriMm>0?` (al limite: ${fmt(ai.fuoriMm)} mm oltre la misura nominale, da verificare sul posto)`:''}.</div>`; }
+      if(opz.soloSingole && r.D>0) h+=`<div class="info"><b>Solo singole + ${r.D===1?'1 colonna centrale':r.D+' colonne centrali'}:</b> ${r.S} singole nel carico e ${r.D===1?'una colonna':r.D+' colonne'} di 2 bobine sovrapposte messe in mezzo, in fondo, a contatto con le precedenti: così il mezzo è pieno (in coda restano ${fmt(v.L-r.sim.lung)} mm).</div>`;
+      else if(opz.soloSingole) h+=`<div class="info"><b>Solo singole:</b> ${r.S} bobine = ${r.S} posizioni, nessuna sovrapposta. In coda restano ${fmt(v.L-r.sim.lung)} mm${r.extra>0?`: ci starebbero ancora circa <b>${r.extra} singole</b>`:': il mezzo è pieno'}.</div>`;
+      else if(r.D>0 && !(r.aggiunte&&r.aggiunte.length)) h+=`<div class="info">Per riempire tutto il mezzo servono <b>${r.D} colonne doppie</b> e <b>${r.S} singole</b>: così le ${r.pile.length} posizioni disponibili sono tutte occupate. In coda restano ${fmt(v.L-r.sim.lung)} mm.</div>`;
+      else if(r.D===0 && !(r.aggiunte&&r.aggiunte.length)) h+=`<div class="info">Con ${r.caricate} bobine il mezzo non è ancora pieno: vanno tutte singole e ci starebbero ancora circa <b>${r.extra} singole</b> in più.</div>`;
+    } else {
+      if(opz.soloSingole) h+=`<div class="warn"><b>Non entrano tutte in singole:</b> se ne caricano ${r.caricate}, ne restano fuori ${r.fuori}. Con le doppie ne entrerebbero di più.</div>`;
+      else h+=`<div class="warn"><b>Non entrano tutte, nemmeno tutte doppie:</b> con questo schema se ne caricano ${r.caricate} (${r.D} doppie + ${r.S} singole), ne restano fuori ${r.fuori}.</div>`;
+    }
+    if(opz.schema==='auto' && r.ok && lr.ok && !(r.aggiunte&&r.aggiunte.length)){
+      if(best.centrali>0 && best.D<lr.D) h+=`<div class="info"><b>Conviene mettere colonne centrali</b> (schema ${nomeSchema(best.schema)}): servono ${best.D} doppie invece delle ${lr.D} che servono alternando solo lato A e lato B.</div>`;
+      else h+=`<div class="info"><b>Non servono colonne centrali:</b> alternando lato A e lato B si riempie al meglio il mezzo.</div>`;
+    }
+    if(r.ok && !lr.ok) h+=`<div class="warn">Alternando solo lato A / lato B le bobine non entrano tutte: servono le colonne centrali.</div>`;
+    const fin=r.sim.placed.filter(p=>p.finale);
+    if(fin.length) h+=`<div class="info"><b>Per riempire tutto il ${v.tipo==='bilico'?'bilico':'mezzo'}</b> ${fin.length===1?'serve 1 colonna centrale':'servono '+fin.length+' colonne centrali'} (2 bobine sovrapposte, posizione n. ${r.sim.placed.map((p,k)=>p.finale?k+1:0).filter(x=>x).join(', ')}): non sono né accoppiate né sfalsate, stanno in mezzo appoggiate alla pila più avanzata${r.sim.placed[0]&&r.sim.placed[0].finale?' (la prima subito verso la cabina)':''}.</div>`;
+    const dsp=r.sim.placed.findIndex(p=>p.dispari);
+    if(dsp>=0) h+=`<div class="info"><b>Singole dispari (${r.S}):</b> la singola in più (n. ${dsp+1}) è stata messa in fondo al camion.</div>`;
+    h+=blocchiPesi(piano,r,v,opz);
+  }
+  if(piano.nonCaricabili.length) h+=`<div class="warn"><b>${piano.nonCaricabili.length} bobine non entrano in larghezza</b> (diametro superiore a ${fmt(piano.Wutile)} mm).</div>`;
+  h+=`<div class="legend"><span><i style="background:${COLORE.L}"></i>lato A</span><span><i style="background:${COLORE.R}"></i>lato B</span><span><i style="background:${COLORE.C}"></i>centrale</span><span>cerchio pieno con anello = DOPPIA · tratteggiato = SINGOLA · numero = ordine di carico</span></div></section>`;
+
+  if(piano.reels.length){
+    h+=`<section class="card dis"><h2>Disegno dall'alto</h2><div class="note">Il lato A è il lato alto del disegno. Si carica dalla testata (cabina) verso le porte.</div>${svgPianta(r,v,opz,piano)}</section>`;
+    h+=`<section class="card"><h2>Sequenza di carico</h2>${descSeq(r,v,opz,piano)}</section>`;
+
+    h+=`<section class="card"><h2>Confronto degli schemi sul ${v.nome}</h2><table class="cmp"><thead><tr><th>Schema (ripetuto)</th><th>Doppie</th><th>Singole</th><th>Posizioni</th><th>Centrali</th><th>Lunghezza usata</th><th></th></tr></thead><tbody>`;
+    const mostra=piano.risultati.slice(0,7); if(!mostra.includes(lr)) mostra.push(lr);
+    mostra.forEach(x=>{
+      h+=`<tr class="${x.schema===r.schema?'sel':''}"><td>${nomeSchema(x.schema)}</td><td>${x.ok?x.D:'–'}</td><td>${x.ok?x.S:'–'}</td><td>${x.ok?x.pile.length:'–'}</td><td>${x.centrali}</td><td>${fmt(x.sim.lung)} mm</td><td>${x.ok?(x===best?'★ migliore':''):`⚠ ne restano fuori ${x.fuori}`}</td></tr>`;
+    });
+    h+=`</tbody></table></section>`;
+
+    h+=`<section class="card"><h2>Container e bilico a confronto (stesso metodo, schema migliore)</h2><table class="cmp"><thead><tr><th>Mezzo</th><th>Larghezza</th><th>Schema</th><th>Doppie</th><th>Singole</th><th>Centrali</th><th>Lunghezza usata</th></tr></thead><tbody>`;
+    Object.values(VEICOLI).forEach(vv=>{
+      const pp=pianifica(tipi,vv,{...opz,schema:'auto'}), b=pp.best;
+      h+=`<tr class="${vv.nome===v.nome?'sel':''}"><td>${vv.nome}</td><td>${fmt(vv.W)} mm</td><td>${nomeSchema(b.schema)}</td><td>${b.ok?b.D:'–'}</td><td>${b.ok?b.S:'–'}</td><td>${b.centrali}</td><td>${fmt(b.sim.lung)} / ${fmt(vv.L)} mm${b.ok?'':` · ⚠ fuori ${b.fuori}`}</td></tr>`;
+    });
+    h+=`</tbody></table></section>`;
+  }
+  h+=`<p class="noprint"><button type="button" id="stampa">Stampa / salva PDF</button> <button type="button" id="copia">Copia riepilogo</button></p>`;
+  h+=`<p class="note">Il calcolo è geometrico (cerchi a contatto con il gioco indicato): verifica sempre il carico reale, i pesi sugli assi e il bloccaggio.</p>`;
+  out.innerHTML=h;
+  $('stampa').onclick=()=>window.print();
+  $('copia').onclick=()=>{ const t=testoRiepilogo(v.nome,piano,v); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{$('copia').textContent='Copiato ✓'},()=>{prompt('Copia il testo:',t)}); };
+  out.scrollIntoView({behavior:'smooth'});
+}
+
+/* avvio */
+Object.entries(VEICOLI).forEach(([k,v])=>{ const o=document.createElement('option'); o.value=k; o.textContent=v.nome; $('veicolo').appendChild(o); });
+$('veicolo').onchange=()=>caricaVeicolo($('veicolo').value);
+$('add').onclick=()=>addRiga();
+$('calcola').onclick=calcola;
+$('veicolo').value='bilico'; caricaVeicolo('bilico');
+addRiga(1100,'',40);
+</script>
+</body>
+</html>
