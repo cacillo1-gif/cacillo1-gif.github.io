@@ -394,6 +394,8 @@ function svgPianta(res,v,opz,piano){
     s+=`<text x="${pad+4}" y="${pad+Wd+12}" font-size="11" fill="#555" transform="translate(60,0)">verso la cabina: peso minore</text>`;
   }
   s+=`<text x="${pad+10}" y="${pad-10}" font-size="11" font-weight="700" fill="#2a7f8e">▲ lato A</text><text x="${pad+10}" y="${pad+Wd+19}" font-size="11" font-weight="700" fill="#3f6fb5">▼ lato B</text>`;
+  let nCnt=0, nAgg=0;
+  const etich=placed.map((p,k)=> (conAgg && res.aggInfo.pile[k] && res.aggInfo.pile[k].aggiunta) ? 'C'+(++nAgg) : ++nCnt);
   placed.forEach((p,k)=>{
     const cx=pad+p.x*S, cy=pad+p.y*S, R=p.d/2*S, col=COLORE[p.lane], fs=Math.max(7,Math.min(12,R*0.26));
     const agg=conAgg && res.aggInfo.pile[k] && res.aggInfo.pile[k].aggiunta;
@@ -410,7 +412,7 @@ function svgPianta(res,v,opz,piano){
       s+=`<text x="${cx}" y="${cy+fs*0.35}" text-anchor="middle" font-size="${fs}" fill="${col}" font-weight="800">SINGOLA</text>`;
       if(piano.pesiNoti) s+=`<text x="${cx}" y="${cy+fs*1.5}" text-anchor="middle" font-size="${fs*0.8}" fill="#333">${fmt(p.kg)} kg</text>`;
     }
-    s+=`<circle cx="${cx}" cy="${cy-R*0.62}" r="${Math.max(7,R*0.17)}" fill="#fff" stroke="${col}"/><text x="${cx}" y="${cy-R*0.62+3.5}" text-anchor="middle" font-size="${Math.max(8,R*0.2)}" font-weight="700" fill="#222">${k+1}</text>`;
+    s+=`<circle cx="${cx}" cy="${cy-R*0.62}" r="${Math.max(7,R*0.17)}" fill="#fff" stroke="${col}"/><text x="${cx}" y="${cy-R*0.62+3.5}" text-anchor="middle" font-size="${Math.max(8,R*0.2)}" font-weight="700" fill="#222">${etich[k]}</text>`;
   });
   s+=`<text x="${pad}" y="${Wd+pad+34}" font-size="11" fill="#555" text-anchor="start" transform="translate(110,0)">◄ testata (lato cabina)</text>`;
   s+=`<text x="${pad+v.L*S}" y="${Wd+pad+34}" font-size="11" fill="#555" text-anchor="end">porte (retro) ►</text></svg>`;
@@ -479,8 +481,8 @@ function calcola(){
     h+=`<div class="kpi"><span class="hl">${v.nome}</span><span class="hl">${r.caricate} bobine = ${r.pile.length} posizioni</span><span>schema ${nomeSchema(r.schema)}</span><span>${r.centrali} centrali</span><span>lunghezza usata ${fmt(r.sim.lung)} / ${fmt(v.L)} mm</span></div>`;
     if(r.ok){
       if(r.aggiunte && r.aggiunte.length){ const n=r.aggiunte.length, ai=r.aggInfo;
-        const pos=ai.pile.map((p,k)=>p.aggiunta?k+1:0).filter(x=>x);
-        h+=`<div class="warn"><b>Il mezzo non è pieno:</b> con le sole ${r.caricate} bobine restano ${fmt(v.L-r.sim.lung)} mm in coda. Per riempirlo e bloccare il carico servono ancora <b>${n===1?'1 colonna centrale':n+' colonne centrali'}</b> (${2*n} bobine in più, a due a due sovrapposte), posizione n. ${pos.join(', ')}${pos[0]===1?' (la prima subito verso la cabina)':''}, appoggiate alla pila più avanzata. Sono disegnate tratteggiate in arancione; lunghezza totale ${fmt(ai.sim.lung)} di ${fmt(v.L)} mm${ai.fuoriMm>0?` (al limite: ${fmt(ai.fuoriMm)} mm oltre la misura nominale, da verificare sul posto)`:''}.</div>`; }
+        const pos=[]; { let prev=0; ai.pile.forEach(p=>{ if(p.aggiunta) pos.push(prev===0?'C'+(pos.length+1)+' subito verso la cabina, prima della n. 1':'C'+(pos.length+1)+' dopo la n. '+prev); else prev++; }); }
+        h+=`<div class="warn"><b>Il mezzo non è pieno:</b> con le sole ${r.caricate} bobine restano ${fmt(v.L-r.sim.lung)} mm in coda. Per riempirlo e bloccare il carico servono ancora <b>${n===1?'1 colonna centrale':n+' colonne centrali'}</b> (${2*n} bobine in più, a due a due sovrapposte): ${pos.join('; ')}. Sono appoggiate alla pila più avanzata e <b>non fanno parte delle ${r.caricate} bobine inserite</b>. Sono disegnate tratteggiate in arancione; lunghezza totale ${fmt(ai.sim.lung)} di ${fmt(v.L)} mm${ai.fuoriMm>0?` (al limite: ${fmt(ai.fuoriMm)} mm oltre la misura nominale, da verificare sul posto)`:''}.</div>`; }
       if(opz.soloSingole && r.D>0) h+=`<div class="info"><b>Solo singole + ${r.D===1?'1 colonna centrale':r.D+' colonne centrali'}:</b> ${r.S} singole nel carico e ${r.D===1?'una colonna':r.D+' colonne'} di 2 bobine sovrapposte messe in mezzo, in fondo, a contatto con le precedenti: così il mezzo è pieno (in coda restano ${fmt(v.L-r.sim.lung)} mm).</div>`;
       else if(opz.soloSingole) h+=`<div class="info"><b>Solo singole:</b> ${r.S} bobine = ${r.S} posizioni, nessuna sovrapposta. In coda restano ${fmt(v.L-r.sim.lung)} mm${r.extra>0?`: ci starebbero ancora circa <b>${r.extra} singole</b>`:': il mezzo è pieno'}.</div>`;
       else if(r.D>0 && !(r.aggiunte&&r.aggiunte.length)) h+=`<div class="info">Per riempire tutto il mezzo servono <b>${r.D} colonne doppie</b> e <b>${r.S} singole</b>: così le ${r.pile.length} posizioni disponibili sono tutte occupate. In coda restano ${fmt(v.L-r.sim.lung)} mm.</div>`;
