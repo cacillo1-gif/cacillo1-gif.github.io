@@ -224,10 +224,20 @@ function centraliOk(lanes){ let gap=99; for(const l of lanes){ if(l==='C'){ if(g
 // Zona assi del bilico: parte da zonaSpost mm verso la cabina rispetto al fondo
 //   (da L-zonaAssi-zonaSpost a L-zonaSpost). Le colonne doppie vanno calcolate lì.
 function zonaAssiLimiti(v,opz){ const sp=opz.zonaSpost>0?opz.zonaSpost:0; return {a:Math.max(0,v.L-opz.zonaAssi-sp), b:v.L-sp}; }
+// Bilico con singole dispari: l'ultima singola va al centro in fondo, appoggiata alle ultime pile (se il carico ci sta ancora)
+function ultimaCentrale(out,ctx){
+  const n=out.length; if(n<3) return out;
+  const u=out[n-1];
+  if(u.reels.length!==1 || out[n-2].lane==='C' || out[n-3].lane==='C') return null;
+  u.lane='C';
+  if(simula(out,ctx.v,ctx.opz).lung>ctx.v.L+TOLL) return null;      // non ci sta: serve più spazio dietro (una doppia in più)
+  return out;
+}
 function costruisciSchema(reels,D,ordine,df,sc,ctx){
   const ordered=costruisciPile(reels,D,ordine,df), P=ordered.length, lanes=corsie(sc,P);
   const c=lanes.filter(x=>x==='C').length;
   if(c>D || !centraliOk(lanes)) return null;
+  if(c>0 && ctx && df && ctx.v.tipo==='bilico' && reels.length%2===1) return null;   // singole dispari: doppie sempre affiancate, solo l'ultima singola è centrale
   const assegna=ord=>{
     const rest=ord.slice(), cent=[];
     for(let i=rest.length-1;i>=0 && cent.length<c;i--) if(rest[i].reels.length>1){ cent.unshift(rest[i]); rest.splice(i,1); }
@@ -252,9 +262,10 @@ function costruisciSchema(reels,D,ordine,df,sc,ctx){
       const punt=dentro-oltre;
       if(!best || punt>best.punt) best={t,dentro,oltre,punt,ord};
     }
-    if(best){ return assegna(best.ord); }
+    if(best){ const o=assegna(best.ord); return (o && df && idxS.length%2===1) ? ultimaCentrale(o,ctx) : o; }
   }
-  return assegna(ordered);
+  const o=assegna(ordered);
+  return (o && ctx && df && ctx.v.tipo==='bilico' && ordered.filter(p=>p.reels.length===1).length%2===1) ? ultimaCentrale(o,ctx) : o;
 }
 
 // Per uno schema trova il minimo numero di doppie che fa stare tutte le bobine nel mezzo (= mezzo riempito)
@@ -496,7 +507,7 @@ function descSeq(res,v,opz,piano){
     let come = p.lane==='C' ? 'centrata' : `a filo della parete ${LATO[p.lane]}`;
     come += p.tocca>=0 ? `, spinta fino a toccare la n. ${p.tocca+1}` : `, spinta contro la testata`;
     if(p.rel) come += p.rel.t==='affiancata' ? ` · <b>affiancata</b> alla n. ${p.rel.n}` : ` · <b>sfalsata</b> di ${fmt(p.rel.dx)} mm (verso le porte) rispetto alla n. ${p.rel.n}`;
-    if(p.finale) come += ` · <b>${p.doppia?'colonna centrale (2 bobine sovrapposte)':'bobina centrale'}, appoggiata alla pila più avanzata</b>`;
+    if(p.finale||p.lane==='C') come += ` · <b>${p.doppia?'colonna centrale (2 bobine sovrapposte)':'bobina centrale'}, appoggiata alla pila più avanzata</b>`;
     if(p.dispari) come += ` · <b>singola in più, messa in fondo al camion</b>`;
     if(piano.usaPeso && p.x>=zonaAssiLimiti(v,opz).a && p.x<=zonaAssiLimiti(v,opz).b) come += ` · <b>sugli assi</b>`;
     h+=`<tr><td>${k+1}</td><td><span class="dot" style="background:${COLORE[p.lane]}"></span>${LATO[p.lane]}</td><td>${p.doppia?'<b>DOPPIA</b>':'singola'}</td><td>${fmt(p.d)}</td>${conKg?`<td>${fmt(p.kg)} kg</td>`:''}<td>${come}</td></tr>`;
@@ -565,6 +576,7 @@ function calcola(){
     }
     if(opz.schema==='auto' && r.ok && lr.ok && !opz.soloSingole && !(opz.nCentrali>=0) && !(r.aggiunte&&r.aggiunte.length)){
       if(best.centrali>0 && best.D<lr.D) h+=`<div class="info"><b>Conviene mettere colonne centrali</b> (schema ${nomeSchema(best.schema)}): servono ${best.D} doppie invece delle ${lr.D} che servono alternando solo lato A e lato B.</div>`;
+      else if(r.centrali>0) h+=`<div class="info"><b>Ultima singola centrale:</b> le doppie restano affiancate a coppie; l'ultima singola sta al centro in fondo, appoggiata alle ultime pile, e dietro resta un po' di spazio libero (${fmt(v.L-r.sim.lung)} mm).</div>`;
       else h+=`<div class="info"><b>Non servono colonne centrali:</b> alternando lato A e lato B si riempie al meglio il mezzo.</div>`;
     }
     if(r.ok && !lr.ok && !opz.soloSingole && !(opz.nCentrali>=0)) h+=`<div class="warn">Alternando solo lato A / lato B le bobine non entrano tutte: servono le colonne centrali.</div>`;
