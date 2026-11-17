@@ -72,7 +72,18 @@
     .pr-only h1{margin:0;font-size:22px;color:var(--navy)}
     .pr-only p{margin:3px 0 0;color:var(--mut);font-size:12.5px}
     .tile,.hero,.warn,.info,.kpi span,.legend i{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    @page{size:A4;margin:14mm}
+    @page{size:A4;margin:10mm}
+    body{font-size:11.5px;line-height:1.3}
+    .pr-only{padding-bottom:5px;margin-bottom:8px}
+    .pr-only h1{font-size:19px}
+    .rep .hero,.rep .tiles,.rep .kpis{margin:0 0 6px}
+    .rep .tile,.rep .hero>*{padding-top:6px!important;padding-bottom:6px!important}
+    .rep .warn,.rep .info{padding:5px 9px!important;margin:0 0 4px!important;font-size:11px!important;line-height:1.28}
+    .rep .legend{margin-top:4px;font-size:10.5px}
+    .rep .note,.rep .chips{margin:3px 0}
+    .dis{break-inside:avoid;page-break-inside:avoid;margin-top:4px}
+    .dis svg{width:100%!important;height:auto!important;max-height:95mm}
+    .rep,#ris{break-after:avoid}
   }
 </style>
 </head>
