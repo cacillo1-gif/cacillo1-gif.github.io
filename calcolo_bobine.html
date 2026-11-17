@@ -104,6 +104,8 @@
       <div><label>Regola pesi (solo bilico)</label><select id="pesi"><option value="1">Sì: leggeri verso la cabina, pesanti sugli assi</option><option value="0">No</option></select></div>
       <div><label>Zona assi: ultimi … mm del bilico</label><input id="zonaAssi" type="number" min="0" value="4000"></div>
       <div><label>Tipo di carico</label><select id="soloSing"><option value="0">Doppie e singole (riempi il mezzo)</option><option value="2">Tutte doppie (centrali solo se servono)</option><option value="1">Solo bobine singole</option></select></div>
+      <div><label>Colonne centrali (contate nelle bobine inserite)</label><select id="nCentrali"><option value="-1">Automatiche (solo se servono)</option><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
+      <div><label>Se il mezzo non è pieno</label><select id="suggerisci"><option value="0">Non aggiungere bobine (solo avviso)</option><option value="1">Disegna le colonne centrali in più</option></select></div>
       <div><label>Singola in più (se dispari) in fondo (solo bilico)</label><select id="dispari"><option value="1">Sì</option><option value="0">No</option></select></div>
       <div><label>Schema di carico</label><select id="schema"><option value="auto">Automatico (prova anche le colonne centrali)</option><option value="LR">Solo alternate lato A – lato B</option></select></div>
     </div>
@@ -233,13 +235,13 @@ function valuta(reels, v, opz, schema, ordine){
   // candidati: (solo singole) le uniche doppie sono le colonne centrali; (altrimenti) D da 0 a N/2
   const candidati=[];
   if(opz.soloSingole){
-    for(let c=0;c<=Math.min(maxD,8);c++){ const P=N-c; if(corsie(schema,P).filter(x=>x==='C').length===c) candidati.push(c); }
+    for(let c=0;c<=Math.min(maxD,8);c++){ if(opz.nCentrali>=0 && c!==opz.nCentrali) continue; const P=N-c; if(corsie(schema,P).filter(x=>x==='C').length===c) candidati.push(c); }
   } else for(let D=0;D<=maxD;D++) candidati.push(D);
   const prova=D=>{ const pile=costruisciSchema(reels,D,ordine,df,schema); return (pile && simula(pile,v,opz).lung<=v.L) ? pile : null; };
   if(opz.soloSingole){
     for(const D of candidati){ const pile=prova(D); if(pile) return risultato(pile,true); }
   } else if(opz.tutteDoppie){
-    const pile=prova(maxD); if(pile) return risultato(pile,true);   // tutte in colonne doppie; le centrali compaiono solo se servono per farle entrare
+    const pile=prova(maxD); if(pile && (!(opz.nCentrali>=0) || pile.filter(p=>p.centrale).length===opz.nCentrali)) return risultato(pile,true);   // tutte in colonne doppie; le centrali compaiono solo se servono per farle entrare
   } else if(prova(maxD)){
     let lo=0, hi=maxD;                       // più doppie = più corto: si cerca il minimo D che entra
     while(lo<hi){ const mid=(lo+hi)>>1; if(prova(mid)) hi=mid; else lo=mid+1; }
@@ -337,6 +339,8 @@ function pianifica(tipi, v, opz){
   });
   scelto.extra=spazioExtra(scelto,v,opz);
   const agg=colonneAggiunte(scelto,v,opz);
+  scelto.suggeriteN=agg.add.length;
+  if(!opz.suggerisci) agg.add=[];
   scelto.aggiunte=agg.add; scelto.simAgg=agg.add.length?agg.sim:null; scelto.aggInfo=agg;
   const pesi=(usaPeso && scelto.ok) ? analisiPesi(scelto,v,opz) : null;
   return {reels:ok, tot:reels.length, nonCaricabili, risultati, best, lr, scelto, Wutile, usaPeso, pesiNoti, pesi};
@@ -368,7 +372,7 @@ function leggiTipi(){
 }
 function caricaVeicolo(k){ const v=VEICOLI[k]; $('vL').value=v.L; $('vW').value=v.W; }
 function leggiVeicolo(){ const k=$('veicolo').value; return {nome:VEICOLI[k].nome, tipo:VEICOLI[k].tipo, L:+$('vL').value, W:+$('vW').value}; }
-function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2'}; }
+function leggiOpz(){ return {schema:$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, dispari:$('dispari').value==='1', soloSingole:$('soloSing').value==='1', tutteDoppie:$('soloSing').value==='2', nCentrali:+$('nCentrali').value, suggerisci:$('suggerisci').value==='1'}; }
 
 const COLORE={L:'#2a7f8e',R:'#3f6fb5',C:'#d9822b'};
 const LATO={L:'lato A',R:'lato B',C:'centro'};
@@ -483,7 +487,8 @@ function calcola(){
       if(r.aggiunte && r.aggiunte.length){ const n=r.aggiunte.length, ai=r.aggInfo;
         const pos=[]; { let prev=0; ai.pile.forEach(p=>{ if(p.aggiunta) pos.push(prev===0?'C'+(pos.length+1)+' subito verso la cabina, prima della n. 1':'C'+(pos.length+1)+' dopo la n. '+prev); else prev++; }); }
         h+=`<div class="warn"><b>Il mezzo non è pieno:</b> con le sole ${r.caricate} bobine restano ${fmt(v.L-r.sim.lung)} mm in coda. Per riempirlo e bloccare il carico servono ancora <b>${n===1?'1 colonna centrale':n+' colonne centrali'}</b> (${2*n} bobine in più, a due a due sovrapposte): ${pos.join('; ')}. Sono appoggiate alla pila più avanzata e <b>non fanno parte delle ${r.caricate} bobine inserite</b>. Sono disegnate tratteggiate in arancione; lunghezza totale ${fmt(ai.sim.lung)} di ${fmt(v.L)} mm${ai.fuoriMm>0?` (al limite: ${fmt(ai.fuoriMm)} mm oltre la misura nominale, da verificare sul posto)`:''}.</div>`; }
-      if(opz.soloSingole && r.D>0) h+=`<div class="info"><b>Solo singole + ${r.D===1?'1 colonna centrale':r.D+' colonne centrali'}:</b> ${r.S} singole nel carico e ${r.D===1?'una colonna':r.D+' colonne'} di 2 bobine sovrapposte messe in mezzo, in fondo, a contatto con le precedenti: così il mezzo è pieno (in coda restano ${fmt(v.L-r.sim.lung)} mm).</div>`;
+      if(!opz.suggerisci && r.suggeriteN>0) h+=`<div class="warn"><b>Il mezzo non è pieno:</b> restano ${fmt(v.L-r.sim.lung)} mm in coda. Per riempirlo servirebbero ancora ${r.suggeriteN===1?'1 colonna centrale':r.suggeriteN+' colonne centrali'} (${2*r.suggeriteN} bobine in più rispetto alle ${r.caricate} inserite). Per vederle nel disegno scegli «Disegna le colonne centrali in più».</div>`;
+      if(opz.soloSingole && r.D>0) h+=`<div class="info"><b>Solo singole + ${r.D===1?'1 colonna centrale':r.D+' colonne centrali'}:</b> ${r.S} singole nel carico e ${r.D===1?'una colonna':r.D+' colonne'} di 2 bobine sovrapposte messe in mezzo (posizione n. ${r.sim.placed.map((p,k)=>p.finale?k+1:0).filter(x=>x).join(', ')}), appoggiate alla pila più avanzata. Le ${r.caricate} bobine sono tutte comprese. In coda restano ${fmt(v.L-r.sim.lung)} mm.</div>`;
       else if(opz.soloSingole) h+=`<div class="info"><b>Solo singole:</b> ${r.S} bobine = ${r.S} posizioni, nessuna sovrapposta. In coda restano ${fmt(v.L-r.sim.lung)} mm${r.extra>0?`: ci starebbero ancora circa <b>${r.extra} singole</b>`:': il mezzo è pieno'}.</div>`;
       else if(r.D>0 && !(r.aggiunte&&r.aggiunte.length)) h+=`<div class="info">Per riempire tutto il mezzo servono <b>${r.D} colonne doppie</b> e <b>${r.S} singole</b>: così le ${r.pile.length} posizioni disponibili sono tutte occupate. In coda restano ${fmt(v.L-r.sim.lung)} mm.</div>`;
       else if(r.D===0 && !(r.aggiunte&&r.aggiunte.length)) h+=`<div class="info">Con ${r.caricate} bobine il mezzo non è ancora pieno: vanno tutte singole e ci starebbero ancora circa <b>${r.extra} singole</b> in più.</div>`;
@@ -491,13 +496,13 @@ function calcola(){
       if(opz.soloSingole) h+=`<div class="warn"><b>Non entrano tutte in singole:</b> se ne caricano ${r.caricate}, ne restano fuori ${r.fuori}. Con le doppie ne entrerebbero di più.</div>`;
       else h+=`<div class="warn"><b>Non entrano tutte, nemmeno tutte doppie:</b> con questo schema se ne caricano ${r.caricate} (${r.D} doppie + ${r.S} singole), ne restano fuori ${r.fuori}.</div>`;
     }
-    if(opz.schema==='auto' && r.ok && lr.ok && !(r.aggiunte&&r.aggiunte.length)){
+    if(opz.schema==='auto' && r.ok && lr.ok && !(opz.nCentrali>=0) && !(r.aggiunte&&r.aggiunte.length)){
       if(best.centrali>0 && best.D<lr.D) h+=`<div class="info"><b>Conviene mettere colonne centrali</b> (schema ${nomeSchema(best.schema)}): servono ${best.D} doppie invece delle ${lr.D} che servono alternando solo lato A e lato B.</div>`;
       else h+=`<div class="info"><b>Non servono colonne centrali:</b> alternando lato A e lato B si riempie al meglio il mezzo.</div>`;
     }
-    if(r.ok && !lr.ok) h+=`<div class="warn">Alternando solo lato A / lato B le bobine non entrano tutte: servono le colonne centrali.</div>`;
+    if(r.ok && !lr.ok && !(opz.nCentrali>=0)) h+=`<div class="warn">Alternando solo lato A / lato B le bobine non entrano tutte: servono le colonne centrali.</div>`;
     const fin=r.sim.placed.filter(p=>p.finale);
-    if(fin.length) h+=`<div class="info"><b>Per riempire tutto il ${v.tipo==='bilico'?'bilico':'mezzo'}</b> ${fin.length===1?'serve 1 colonna centrale':'servono '+fin.length+' colonne centrali'} (2 bobine sovrapposte, posizione n. ${r.sim.placed.map((p,k)=>p.finale?k+1:0).filter(x=>x).join(', ')}): non sono né accoppiate né sfalsate, stanno in mezzo appoggiate alla pila più avanzata${r.sim.placed[0]&&r.sim.placed[0].finale?' (la prima subito verso la cabina)':''}.</div>`;
+    if(fin.length && !(opz.nCentrali>=0 && opz.soloSingole)) h+=`<div class="info"><b>Per riempire tutto il ${v.tipo==='bilico'?'bilico':'mezzo'}</b> ${fin.length===1?'serve 1 colonna centrale':'servono '+fin.length+' colonne centrali'} (2 bobine sovrapposte, posizione n. ${r.sim.placed.map((p,k)=>p.finale?k+1:0).filter(x=>x).join(', ')}): non sono né accoppiate né sfalsate, stanno in mezzo appoggiate alla pila più avanzata${r.sim.placed[0]&&r.sim.placed[0].finale?' (la prima subito verso la cabina)':''}.</div>`;
     const dsp=r.sim.placed.findIndex(p=>p.dispari);
     if(dsp>=0) h+=`<div class="info"><b>Singole dispari (${r.S}):</b> la singola in più (n. ${dsp+1}) è stata messa in fondo al camion.</div>`;
     h+=blocchiPesi(piano,r,v,opz);
