@@ -55,6 +55,8 @@
   .seq tr:nth-child(even) td{background:#f7fafb}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
   @media(max-width:600px){header h1{font-size:20px}.card{padding:16px}}
+  .dl{display:none;margin-top:12px;background:rgba(255,255,255,.16);color:#fff;border:1.5px solid rgba(255,255,255,.45);padding:8px 16px;font-size:14px}
+  .dl:hover{background:rgba(255,255,255,.28)}
   .pr-only{display:none}
   @media print{
     header,#inputs,.noprint{display:none!important}
@@ -78,7 +80,7 @@
 <header>
   <div class="hd">
     <div class="logo"><svg viewBox="0 0 48 48" width="36" height="36" style="margin:0"><ellipse cx="24" cy="37" rx="15" ry="5.5" fill="#fff" fill-opacity=".5"/><path d="M9 37V15c0-3 6.7-5.5 15-5.5S39 12 39 15v22c0 3-6.7 5.5-15 5.5S9 40 9 37Z" fill="#fff"/><ellipse cx="24" cy="15" rx="15" ry="5.5" fill="#cfeef2"/><ellipse cx="24" cy="15" rx="5" ry="2" fill="#0f6b78"/></svg></div>
-    <div><h1>Calcolo carico bobine</h1><p>Container e bilico: quante colonne doppie, quante singole e dove mettere le centrali per riempire il mezzo.</p></div>
+    <div><h1>Calcolo carico bobine</h1><p>Container e bilico: quante colonne doppie, quante singole e dove mettere le centrali per riempire il mezzo.</p><button id="scarica" class="dl" type="button">⬇ Scarica il programma (funziona anche offline)</button></div>
   </div>
 </header>
 <main>
@@ -453,6 +455,16 @@ function testoRiepilogo(nome,piano,v){
   return t;
 }
 
+(function(){
+  const b=document.getElementById('scarica'); if(!b || !/^https?:/.test(location.protocol)) return;
+  b.style.display='inline-block';
+  b.onclick=()=>{
+    fetch(location.href.split('#')[0]).then(r=>r.blob()).then(bl=>{
+      const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download='calcolo-bobine.html';
+      document.body.appendChild(a); a.click(); a.remove();
+    }).catch(()=>{ alert('Per salvare il programma: tasto destro sulla pagina > Salva con nome (oppure Ctrl+S).'); });
+  };
+})();
 function calcola(){
   const out=$('ris'); out.innerHTML='';
   let tipi,v;
