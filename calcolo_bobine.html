@@ -242,6 +242,7 @@ function costruisciSchema(reels,D,ordine,df,sc,ctx){
     const z=zonaAssiLimiti(ctx.v,ctx.opz), idxS=[]; ordered.forEach((p,k)=>{ if(p.reels.length===1) idxS.push(k); });
     let best=null;
     for(let t=0;t<=idxS.length;t++){
+      if(df && (idxS.length-t)%2!==0) continue;          // singole dispari: davanti sempre in coppie allineate A–B, la singola in più dietro
       const tail=idxS.slice(idxS.length-t), tset=new Set(tail);
       const ord=ordered.filter((p,k)=>!tset.has(k)).concat(tail.map(k=>ordered[k]));
       const out=assegna(ord); if(!out) continue;
