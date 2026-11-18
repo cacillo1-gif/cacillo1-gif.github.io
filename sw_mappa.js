@@ -1,6 +1,6 @@
 // Service worker della mappa magazzino: salva i file sul telefono e li serve anche senza rete.
 // Tocca solo i file della mappa (non le altre pagine del sito).
-const NOME='mappa-magazzino-v1';
+const NOME='mappa-magazzino-v2';
 const FILE=['mappa_magazzino.html','mappa_magazzino.webmanifest','icona-192.png','icona-512.png','apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(NOME).then(c=>c.addAll(FILE)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==NOME&&x.startsWith('mappa-magazzino')).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
