@@ -1,0 +1,26 @@
+{
+ "name": "Mappa magazzino",
+ "short_name": "Mappa magazzino",
+ "description": "Trova la stiva: percorso dall'ingresso",
+ "start_url": "./mappa_magazzino.html",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#ffffff",
+ "theme_color": "#0d2b3a",
+ "lang": "it",
+ "icons": [
+  {
+   "src": "icona-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any maskable"
+  },
+  {
+   "src": "icona-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}
