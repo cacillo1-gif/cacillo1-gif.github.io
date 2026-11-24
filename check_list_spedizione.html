@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f2a4a">
+<title>Check List Spedizione – ICP</title>
+<style>
+:root{--navy:#0f2a4a;--amber:#f5a623;--ok:#1e8e3e;--bg:#f2f4f7;--card:#fff;--line:#d9dee5;--txt:#1b2430;--mut:#667085;--err:#c62828}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+header{background:var(--navy);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:18px;letter-spacing:.3px}
+header small{opacity:.75;display:block;font-size:12px}
+.bar{height:6px;background:rgba(255,255,255,.2);border-radius:3px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--amber);transition:width .25s}
+#gear{position:absolute;right:12px;top:calc(10px + env(safe-area-inset-top));background:none;border:0;color:#fff;font-size:24px;padding:4px 8px}
+main{max-width:640px;margin:0 auto;padding:12px}
+section{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+section h2{margin:0 0 4px;font-size:15px;text-transform:uppercase;letter-spacing:.6px;color:var(--navy)}
+section p.sub{margin:0 0 8px;color:var(--mut);font-size:13px}
+label.chk{display:flex;gap:12px;align-items:flex-start;padding:12px 8px;border-top:1px solid var(--line);cursor:pointer}
+label.chk:first-of-type{border-top:0}
+label.chk input{appearance:none;-webkit-appearance:none;flex:0 0 34px;width:34px;height:34px;border:3px solid var(--navy);border-radius:8px;background:#fff;margin:0;position:relative}
+label.chk input:checked{background:var(--ok);border-color:var(--ok)}
+label.chk input:checked::after{content:"";position:absolute;left:9px;top:3px;width:8px;height:16px;border:solid #fff;border-width:0 4px 4px 0;transform:rotate(45deg)}
+label.chk span{flex:1;padding-top:3px}
+label.chk.on span{color:var(--mut)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row .full{grid-column:1/-1}
+.f label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+input[type=text],input[type=email],input[type=datetime-local],textarea{width:100%;font:inherit;padding:11px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.yn{display:flex;gap:10px;margin-top:6px}
+.yn label{flex:1;text-align:center;padding:12px;border:2px solid var(--navy);border-radius:10px;font-weight:600;cursor:pointer}
+.yn input{display:none}
+.yn input:checked+b{display:block;margin:-12px;padding:12px;border-radius:8px;background:var(--navy);color:#fff}
+.yn label b{display:block;font-weight:600}
+.dpi{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.dpi div{display:flex;align-items:center;gap:8px;font-size:14px}
+.dpi svg{width:46px;height:46px}
+details{margin-top:8px}
+details summary{color:var(--navy);font-weight:600;cursor:pointer}
+details table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+details td{border:1px solid var(--line);padding:6px;vertical-align:top}
+.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.photos img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+button.sec{background:#fff;border:2px solid var(--navy);color:var(--navy);border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;margin-top:8px}
+#sig{width:100%;height:150px;border:2px dashed var(--navy);border-radius:10px;background:#fff;touch-action:none;display:block}
+.foot{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:6}
+.foot .in{max-width:640px;margin:0 auto}
+#send{width:100%;border:0;border-radius:12px;background:var(--navy);color:#fff;font:inherit;font-size:18px;font-weight:700;padding:15px}
+#send:disabled{background:#9aa5b4}
+#msg{font-size:13px;text-align:center;margin-bottom:6px;min-height:18px;color:var(--mut)}
+#msg.err{color:var(--err)} #msg.ok{color:var(--ok);font-weight:600}
+dialog{border:0;border-radius:14px;padding:16px;width:min(92vw,460px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{margin:0 0 10px}
+.tog{display:flex;gap:10px;align-items:center;margin:10px 0}
+.tog input{width:22px;height:22px}
+.hint{font-size:12px;color:var(--mut)}
+.actions{display:flex;gap:8px;margin-top:12px}
+.actions button{flex:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>CHECK LIST SPEDIZIONE</h1>
+  <small>IOP 807 – ICP rev. 01 del 12/11/2026</small>
+  <div class="bar"><i id="bar"></i></div>
+  <button id="gear" aria-label="Impostazioni">⚙</button>
+</header>
+
+<main>
+  <section>
+    <h2>Dati spedizione</h2>
+    <div class="row">
+      <div class="f full"><label>Operatore (nome e cognome)</label><input type="text" id="operatore" autocomplete="name"></div>
+      <div class="f"><label>Cliente</label><input type="text" id="cliente"></div>
+      <div class="f"><label>Ordine / DDT</label><input type="text" id="ordine"></div>
+      <div class="f full"><label>Targa mezzo</label><input type="text" id="targa" autocapitalize="characters"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>DPI da usare</h2>
+    <div class="dpi">
+      <div>
+        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="31" fill="#0b62b3"/><path d="M14 38a18 18 0 0 1 36 0z M10 38h44v4H10z" fill="#fff"/></svg>
+        Casco di protezione
+      </div>
+      <div>
+        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="31" fill="#0b62b3"/><path d="M22 14h12v16l12 6c3 1 4 3 4 6v4H18V14z" fill="#fff"/></svg>
+        Scarpe antinfortunistiche
+      </div>
+    </div>
+    <details>
+      <summary>Valutazione dei rischi</summary>
+      <table>
+        <tr><td><b>Mancato rispetto procedure</b><br>Rischio medio</td><td>Spedizione errata, non conformità, contestazioni. Usare la check list in tutte le fasi, verificare etichette e documentazione, foto previste, controllo finale del mezzo.</td></tr>
+        <tr><td><b>Movimentazione con carrello elevatore</b><br>Rischio alto</td><td>Urti tra carrello, operatori e veicoli: contusioni, fratture, infortuni gravi. Rispettare i percorsi, mantenere le distanze di sicurezza, delimitare l'area, guida solo a personale abilitato.</td></tr>
+        <tr><td><b>Instabilità e caduta del materiale</b><br>Rischio alto</td><td>Caduta o ribaltamento di bobine e pallet. Verificare stabilità dei colli, sistemi di movimentazione idonei, corretto posizionamento e fissaggio.</td></tr>
+      </table>
+    </details>
+  </section>
+
+  <section id="s1"><h2>Prima del carico</h2><p class="sub">Verificare che:</p>
+    <label class="chk"><input type="checkbox" data-k="p1"><span>Le etichette sulle bobine o sui pallet siano presenti, perfettamente integre, leggibili e conformi ai dati dell'ordine.</span></label>
+    <label class="chk"><input type="checkbox" data-k="p2"><span>L'imballaggio, il film estensibile e lo stato generale del prodotto siano integri, senza difetti visibili.</span></label>
+    <label class="chk"><input type="checkbox" data-k="p3"><span>Il mezzo di trasporto sia idoneo, pulito, asciutto e privo di umidità, odori anomali, chiodi o asperità che possano rovinare il materiale.</span></label>
+  </section>
+
+  <section id="s2"><h2>Durante il carico</h2><p class="sub">Verificare che:</p>
+    <label class="chk"><input type="checkbox" data-k="d1"><span>La movimentazione avvenga correttamente, senza urti o danni causati dalle pinze del carrello o agli angoli dei colli.</span></label>
+    <label class="chk"><input type="checkbox" data-k="d2"><span>Il carico sia distribuito in modo equilibrato, stabile e simmetrico sulla piattaforma del veicolo.</span></label>
+    <div style="padding:12px 8px;border-top:1px solid var(--line)">
+      <b>Esecuzione fotografica</b>
+      <div class="sub" style="color:var(--mut);font-size:13px">Scattare le foto di rito a testimonianza del corretto posizionamento della merce prima di chiudere il mezzo.</div>
+      <div class="yn">
+        <label><input type="radio" name="foto" value="Sì"><b>Sì</b></label>
+        <label><input type="radio" name="foto" value="No"><b>No</b></label>
+      </div>
+      <input type="file" id="fileFoto" accept="image/*" capture="environment" multiple hidden>
+      <button class="sec" id="btnFoto" type="button">📷 Scatta / allega foto (facoltativo)</button>
+      <div class="photos" id="photos"></div>
+    </div>
+  </section>
+
+  <section id="s3"><h2>Dopo il carico</h2><p class="sub">Verificare che:</p>
+    <label class="chk"><input type="checkbox" data-k="a1"><span>Il carico sia correttamente messo in sicurezza con il numero previsto di cinghie di ancoraggio e protezioni angolari.</span></label>
+    <label class="chk"><input type="checkbox" data-k="a2"><span>Il materiale caricato corrisponda a quanto riportato sui documenti.</span></label>
+    <label class="chk"><input type="checkbox" data-k="a3"><span>La check list sia completata in ogni sua parte con data, ora e firma leggibile dell'operatore.</span></label>
+  </section>
+
+  <section>
+    <h2>Data, ora e firma</h2>
+    <div class="f"><label>Data e ora (compilate in automatico)</label><input type="datetime-local" id="dt"></div>
+    <label style="display:block;font-size:12px;color:var(--mut);margin:10px 0 3px">Firma dell'operatore (firma con il dito)</label>
+    <canvas id="sig"></canvas>
+    <button class="sec" id="clr" type="button">Cancella firma</button>
+    <div class="f" style="margin-top:10px"><label>Note (facoltative)</label><textarea id="note" rows="2"></textarea></div>
+  </section>
+</main>
+
+<div class="foot"><div class="in">
+  <div id="msg"></div>
+  <button id="send" disabled>Compila tutti i punti</button>
+</div></div>
+
+<dialog id="dlg">
+  <h3>Impostazioni invio</h3>
+  <div class="f"><label>Indirizzo e-mail destinatario</label>
+    <input type="email" id="dest" placeholder="nome@azienda.it" inputmode="email"></div>
+  <div class="tog"><input type="checkbox" id="auto"><label for="auto"><b>Invio automatico</b> (senza aprire la posta)</label></div>
+  <p class="hint">Invio automatico tramite il servizio FormSubmit. Alla <b>prima</b> spedizione al nuovo indirizzo arriva una mail di conferma: va cliccato "Activate Form" una sola volta. Se l'invio automatico non riesce, l'app passa alla condivisione del PDF con l'app di posta.</p>
+  <div class="actions"><button class="sec" id="dlgOk" type="button">Salva</button></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const ITEMS={
+ "Prima del carico":[
+  ["p1","Le etichette sulle bobine o sui pallet siano presenti, perfettamente integre, leggibili e conformi ai dati dell'ordine."],
+  ["p2","L'imballaggio, il film estensibile e lo stato generale del prodotto siano integri, senza difetti visibili."],
+  ["p3","Il mezzo di trasporto sia idoneo, pulito, asciutto e privo di umidità, odori anomali, chiodi o asperità che possano rovinare il materiale."]],
+ "Durante il carico":[
+  ["d1","La movimentazione avvenga correttamente, senza urti o danni causati dalle pinze del carrello o agli angoli dei colli."],
+  ["d2","Il carico sia distribuito in modo equilibrato, stabile e simmetrico sulla piattaforma del veicolo."]],
+ "Dopo il carico":[
+  ["a1","Il carico sia correttamente messo in sicurezza con il numero previsto di cinghie di ancoraggio e protezioni angolari."],
+  ["a2","Il materiale caricato corrisponda a quanto riportato sui documenti."],
+  ["a3","La check list sia completata in ogni sua parte con data, ora e firma leggibile dell'operatore."]]
+};
+const store={get(k,d){try{return localStorage.getItem(k)??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+// ---- impostazioni
+$('#dest').value=store.get('cl_dest','');
+$('#auto').checked=store.get('cl_auto','1')==='1';
+$('#operatore').value=store.get('cl_op','');
+$('#gear').onclick=()=>$('#dlg').showModal();
+$('#dlgOk').onclick=()=>{store.set('cl_dest',$('#dest').value.trim());store.set('cl_auto',$('#auto').checked?'1':'0');$('#dlg').close();refresh()};
+if(!$('#dest').value) setTimeout(()=>$('#dlg').showModal(),300);
+
+// ---- data/ora
+function nowLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)}
+$('#dt').value=nowLocal();
+
+// ---- firma
+const cv=$('#sig'),cx=cv.getContext('2d');let drawing=false,signed=false,last;
+function fit(){const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;cv.width=r.width*dpr;cv.height=r.height*dpr;cx.scale(dpr,dpr);cx.lineWidth=2.4;cx.lineCap='round';cx.strokeStyle='#0f2a4a';signed=false}
+fit();
+const pt=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+cv.addEventListener('pointerdown',e=>{drawing=true;last=pt(e);cv.setPointerCapture(e.pointerId);cx.beginPath();cx.moveTo(...last);cx.lineTo(last[0]+.1,last[1]);cx.stroke()});
+cv.addEventListener('pointermove',e=>{if(!drawing)return;const p=pt(e);cx.beginPath();cx.moveTo(...last);cx.lineTo(...p);cx.stroke();last=p;signed=true});
+['pointerup','pointercancel'].forEach(t=>cv.addEventListener(t,()=>{drawing=false;refresh()}));
+$('#clr').onclick=()=>{cx.clearRect(0,0,cv.width,cv.height);signed=false;refresh()};
+
+// ---- foto
+let photos=[];
+$('#btnFoto').onclick=()=>$('#fileFoto').click();
+$('#fileFoto').onchange=async e=>{
+  for(const f of e.target.files){
+    if(photos.length>=8)break;
+    const url=await shrink(f);photos.push(url);
+  }
+  e.target.value='';renderPhotos();
+  if(!document.querySelector('input[name=foto]:checked')){document.querySelector('input[name=foto][value="Sì"]').checked=true}
+  refresh();
+};
+function shrink(file){return new Promise(res=>{const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const m=1000,s=Math.min(1,m/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res({d:c.toDataURL('image/jpeg',.7),w:c.width,h:c.height})};img.src=u})}
+function renderPhotos(){$('#photos').innerHTML='';photos.forEach((p,i)=>{const im=new Image();im.src=p.d;im.onclick=()=>{if(confirm('Rimuovere la foto?')){photos.splice(i,1);renderPhotos()}};$('#photos').appendChild(im)})}
+
+// ---- stato
+const boxes=$$('input[data-k]');
+function missing(){
+  const m=[];
+  if(boxes.some(b=>!b.checked))m.push('punti da spuntare');
+  if(!document.querySelector('input[name=foto]:checked'))m.push('foto Sì/No');
+  if(!$('#operatore').value.trim())m.push('operatore');
+  if(!signed)m.push('firma');
+  if(!$('#dest').value.trim())m.push('e-mail destinatario');
+  return m;
+}
+function refresh(){
+  boxes.forEach(b=>b.closest('label').classList.toggle('on',b.checked));
+  const tot=boxes.length+1,done=boxes.filter(b=>b.checked).length+(document.querySelector('input[name=foto]:checked')?1:0);
+  $('#bar').style.width=(done/tot*100)+'%';
+  const m=missing();
+  $('#send').disabled=m.length>0;
+  $('#send').textContent=m.length?('Mancano: '+m.join(', ')):'Invia check list';
+  store.set('cl_op',$('#operatore').value);
+}
+document.addEventListener('change',refresh);document.addEventListener('input',refresh);refresh();
+
+// ---- PDF
+function buildPdf(){
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'}),W=210,M=15;let y=0;
+  const dt=new Date($('#dt').value||nowLocal());
+  const dataStr=dt.toLocaleDateString('it-IT'),oraStr=dt.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  function head(){doc.setFillColor(15,42,74);doc.rect(0,0,W,22,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text('icp',M,14);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.text('IMMAGAZZINAMENTO E SPEDIZIONE ARTICOLI – IOP 807 – ICP rev-01 del 12/11/2026',W-M,10,{align:'right'});doc.text('CHECK LIST SPEDIZIONE rev. 01',W-M,16,{align:'right'});doc.setTextColor(0);y=32}
+  function need(h){if(y+h>285){doc.addPage();head()}}
+  head();
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('CHECK LIST SPEDIZIONE',M,y);y+=8;
+  doc.setFontSize(10.5);
+  const info=[['Operatore',$('#operatore').value],['Data / ora',dataStr+'  '+oraStr],['Cliente',$('#cliente').value],['Ordine / DDT',$('#ordine').value],['Targa mezzo',$('#targa').value]];
+  info.forEach(([k,v])=>{doc.setFont('helvetica','bold');doc.text(k+':',M,y);doc.setFont('helvetica','normal');doc.text(String(v||'-'),M+32,y);y+=6});
+  y+=3;
+  function box(x,yy,on){doc.setDrawColor(15,42,74);doc.setLineWidth(.5);doc.rect(x,yy,5,5);if(on){doc.setDrawColor(30,142,62);doc.setLineWidth(.9);doc.line(x+1,yy+2.7,x+2.2,yy+4);doc.line(x+2.2,yy+4,x+4.2,yy+1)}}
+  const state={};boxes.forEach(b=>state[b.dataset.k]=b.checked);
+  Object.entries(ITEMS).forEach(([sec,list])=>{
+    need(14);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(15,42,74);doc.text(sec.toUpperCase(),M,y);doc.setTextColor(0);y+=6;doc.setFontSize(10);
+    list.forEach(([k,t])=>{const lines=doc.splitTextToSize(t,W-2*M-10);need(lines.length*4.6+3);box(M,y-3.8,state[k]);doc.setFont('helvetica','normal');doc.text(lines,M+9,y);y+=lines.length*4.6+2.5});
+    if(sec==='Durante il carico'){need(10);doc.setFont('helvetica','normal');
+      const fv=(document.querySelector('input[name=foto]:checked')||{}).value||'-';
+      doc.text('Esecuzione fotografica eseguita:',M,y);box(M+62,y-3.8,fv==='Sì');doc.text('Sì',M+69,y);box(M+78,y-3.8,fv==='No');doc.text('No',M+85,y);y+=7}
+    y+=3;
+  });
+  if($('#note').value.trim()){const l=doc.splitTextToSize('Note: '+$('#note').value.trim(),W-2*M);need(l.length*4.6+4);doc.setFont('helvetica','normal');doc.text(l,M,y);y+=l.length*4.6+4}
+  need(45);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text('DATA E ORA: '+dataStr+'  '+oraStr,M,y+2);doc.text('FIRMA OPERATORE:',100,y+2);
+  try{doc.addImage(cv.toDataURL('image/png'),'PNG',100,y+4,85,32)}catch(e){}
+  doc.setDrawColor(120);doc.setLineWidth(.2);doc.line(100,y+37,W-M,y+37);y+=42;
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(110);doc.text('Classificazione informazioni: Riservato interni – compilato digitalmente da '+($('#operatore').value||'-'),M,290);doc.setTextColor(0);
+  if(photos.length){
+    doc.addPage();head();doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('FOTO DI CARICO',M,y);y+=6;
+    const cw=(W-2*M-6)/2;let col=0,rowH=0;
+    photos.forEach(p=>{const h=cw*p.h/p.w;if(col===0){if(y+h>285){doc.addPage();head()}rowH=h}
+      doc.addImage(p.d,'JPEG',M+col*(cw+6),y,cw,h);rowH=Math.max(rowH,h);col++;if(col===2){col=0;y+=rowH+6}});
+  }
+  const fname=('Checklist_Spedizione_'+(($('#cliente').value||'').trim().replace(/[^\w]+/g,'_')||'')+'_'+dt.toISOString().slice(0,10)+'_'+oraStr.replace(':','')+'.pdf').replace(/_+/g,'_');
+  return {blob:doc.output('blob'),name:fname,dataStr,oraStr};
+}
+
+// ---- invio
+function say(t,c){const m=$('#msg');m.textContent=t;m.className=c||''}
+function subj(r){return 'Check list spedizione '+($('#cliente').value||'')+' '+($('#ordine').value||'')+' – '+r.dataStr+' '+r.oraStr+' – '+$('#operatore').value}
+async function autoSend(r,to){
+  const fd=new FormData();
+  fd.append('attachment',new File([r.blob],r.name,{type:'application/pdf'}));
+  fd.append('_subject',subj(r));fd.append('_captcha','false');fd.append('_template','table');
+  fd.append('Operatore',$('#operatore').value);fd.append('Cliente',$('#cliente').value);fd.append('Ordine',$('#ordine').value);fd.append('Targa',$('#targa').value);
+  fd.append('Data',r.dataStr+' '+r.oraStr);fd.append('Messaggio','Check list spedizione compilata e firmata, in allegato PDF.');
+  // endpoint standard (documentato per gli allegati, multipart): niente CORS, risposta opaca
+  await fetch('https://formsubmit.co/'+encodeURIComponent(to),{method:'POST',body:fd,mode:'no-cors'});
+  return true;
+}
+async function shareOrDownload(r,to){
+  const file=new File([r.blob],r.name,{type:'application/pdf'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:subj(r),text:'Check list spedizione in allegato. Destinatario: '+to});return 'share'}catch(e){if(e.name==='AbortError')return 'abort'}
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(r.blob);a.download=r.name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>{location.href='mailto:'+to+'?subject='+encodeURIComponent(subj(r))+'&body='+encodeURIComponent('Buongiorno,\nin allegato la check list spedizione compilata (allega il PDF appena scaricato: '+r.name+').')},400);
+  return 'mailto';
+}
+$('#send').onclick=async()=>{
+  const to=$('#dest').value.trim();$('#send').disabled=true;say('Creo il PDF…');
+  let r;try{r=buildPdf()}catch(e){say('Errore nella creazione del PDF: '+e.message,'err');refresh();return}
+  if($('#auto').checked){
+    say('Invio in corso a '+to+'…');
+    try{await autoSend(r,to);say('✓ Richiesta inviata a '+to+'. Controlla che la mail arrivi (la prima volta va confermata l\'attivazione).','ok');$('#send').textContent='Inviata ✓';setTimeout(()=>{$('#send').disabled=false;refresh()},4000);return}
+    catch(e){say('Invio automatico non riuscito ('+e.message+'). Passo alla condivisione…','err')}
+  }
+  const how=await shareOrDownload(r,to);
+  if(how==='share')say('PDF pronto: scegli l\'app di posta e invia a '+to,'ok');
+  else if(how==='mailto')say('PDF scaricato: allegalo alla mail che si apre ('+to+')','ok');
+  else say('Condivisione annullata');
+  refresh();
+};
+})();
+</script>
+</body>
+</html>
