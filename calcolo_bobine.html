@@ -106,7 +106,7 @@
       <thead><tr><th>Diametro (mm)</th><th>Peso di 1 bobina (kg, per la regola pesi)</th><th>Quantità</th><th class="consTd">Consegna</th><th></th></tr></thead>
       <tbody></tbody>
     </table>
-    <p style="margin:10px 0 0"><button id="add" type="button">+ Aggiungi altro diametro</button> <button id="fripa" class="tog" type="button" aria-pressed="false">Fripa</button> <button id="fDiam" class="tog" type="button" aria-pressed="false">Diametri diversi</button> <button id="fDue" class="tog" type="button" aria-pressed="false">Due scarichi</button></p>
+    <p style="margin:10px 0 0"><button id="add" type="button">+ Aggiungi altro diametro</button> <button id="fripa" class="tog" type="button" aria-pressed="false">Fripa</button> <button id="fDiam" class="tog" type="button" aria-pressed="false">Diametri diversi</button> <button id="fDue" class="tog" type="button" aria-pressed="false">Due scarichi</button> <button id="fConf" class="tog" type="button" aria-pressed="false">Diametro 1400</button></p>
     <p id="davantiBox" style="display:none;margin:10px 0 0;max-width:340px"><label>Quale consegna va davanti (verso la cabina)?</label><select id="davanti"><option value="1">Consegna 1 davanti</option><option value="2">Consegna 2 davanti</option></select></p>
     <p id="fripaNota" class="note" style="margin:8px 0 0"></p>
     <p class="note">Bobine in piedi: a terra occupano un cerchio pari al diametro. Una <b>doppia</b> = due bobine sovrapposte, una <b>singola</b> = una bobina sola (stesso ingombro a terra). L'altezza non conta.</p>
@@ -268,6 +268,16 @@ function ultimaCentrale(out,ctx){
   if(simula(out,ctx.v,ctx.opz).lung>ctx.v.L+TOLL) return null;      // non ci sta: serve più spazio dietro (una doppia in più)
   return out;
 }
+// Singole dispari con "singole tutte davanti": la singola in più resta davanti con le altre singole, tutto in alternanza A–B dalla testata (nessuna centrale)
+function primaCentrale(out,ctx){
+  const n=out.length; if(n<3 || out.some(p=>p.lane==='C')) return null;
+  let k=-1; for(let i=n-1;i>=0;i--) if(out[i].reels.length===1){ k=i; break; }
+  if(k<0) return null;
+  const u=out.splice(k,1)[0]; out.unshift(u);
+  for(let j=0;j<n;j++){ out[j].lane=(j%2===0)?'L':'R'; out[j].centrale=false; }
+  if(simula(out,ctx.v,ctx.opz).lung>ctx.v.L+TOLL) return null;
+  return out;
+}
 function costruisciSchema(reels,D,ordine,df,sc,ctx){
   const ordered=costruisciPile(reels,D,ordine,df), P=ordered.length, lanes=corsie(sc,P);
   const c=lanes.filter(x=>x==='C').length;
@@ -286,7 +296,7 @@ function costruisciSchema(reels,D,ordine,df,sc,ctx){
   if(ctx && ordine==='peso' && ctx.v.tipo==='bilico' && ctx.opz.zonaSpost>0 && D>0){
     const z=zonaAssiLimiti(ctx.v,ctx.opz), idxS=[]; ordered.forEach((p,k)=>{ if(p.reels.length===1) idxS.push(k); });
     let best=null;
-    for(let t=0;t<=idxS.length;t++){
+    for(let t=0;t<=(ctx.opz.singDavanti?0:idxS.length);t++){
       if(df && (idxS.length-t)%2!==0) continue;          // singole dispari: davanti sempre in coppie allineate A–B, la singola in più dietro
       const tail=idxS.slice(idxS.length-t), tset=new Set(tail);
       const ord=ordered.filter((p,k)=>!tset.has(k)).concat(tail.map(k=>ordered[k]));
@@ -297,10 +307,10 @@ function costruisciSchema(reels,D,ordine,df,sc,ctx){
       const punt=dentro-oltre;
       if(!best || punt>best.punt) best={t,dentro,oltre,punt,ord};
     }
-    if(best){ const o=assegna(best.ord); return (o && df && idxS.length%2===1) ? ultimaCentrale(o,ctx) : o; }
+    if(best){ const o=assegna(best.ord); return (o && df && idxS.length%2===1) ? ((ctx.opz.singDavanti&&!ctx.opz.dispari)?primaCentrale(o,ctx):ultimaCentrale(o,ctx)) : o; }
   }
   const o=assegna(ordered);
-  return (o && ctx && df && ctx.v.tipo==='bilico' && ordered.filter(p=>p.reels.length===1).length%2===1) ? ultimaCentrale(o,ctx) : o;
+  return (o && ctx && df && ctx.v.tipo==='bilico' && ordered.filter(p=>p.reels.length===1).length%2===1) ? ((ctx.opz.singDavanti&&!ctx.opz.dispari)?primaCentrale(o,ctx):ultimaCentrale(o,ctx)) : o;
 }
 
 // Per uno schema trova il minimo numero di doppie che fa stare tutte le bobine nel mezzo (= mezzo riempito)
@@ -538,23 +548,26 @@ function caricaVeicolo(k){ const v=VEICOLI[k]; $('vL').value=v.L; $('vW').value=
 function leggiVeicolo(){ const k=$('veicolo').value; return {nome:VEICOLI[k].nome, tipo:VEICOLI[k].tipo, L:+$('vL').value, W:+$('vW').value}; }
 let MODO=null;
 const bilicoSel=()=>VEICOLI[$('veicolo').value].tipo==='bilico';
+function diamTutti1400(){ let n=0, ok=true; for(const tr of $('tab').tBodies[0].rows){ const d=parseFloat(tr.querySelector('input').value); if(d>0){ n++; if(d!==1400) ok=false; } } return n>0 && ok; }
+function confAttivo(){ return MODO==='conf' && bilicoSel() && diamTutti1400(); }
 function fripaAttivo(){ return MODO==='fripa' && bilicoSel(); }
 function forzaAttiva(){ return bilicoSel() ? (MODO==='diam'?'diam':MODO==='due'?'consegne':null) : null; }
 function setModo(m){ MODO=(MODO===m)?null:m; applicaFripa(); }
 function applicaFripa(){
   const bil=bilicoSel(), att=!!MODO&&bil;
-  [['fripa','fripa'],['fDiam','diam'],['fDue','due']].forEach(([id,m])=>{ const on=MODO===m; $(id).classList.toggle('on',on); $(id).setAttribute('aria-pressed',on?'true':'false'); });
+  [['fripa','fripa'],['fDiam','diam'],['fDue','due'],['fConf','conf']].forEach(([id,m])=>{ const on=MODO===m; $(id).classList.toggle('on',on); $(id).setAttribute('aria-pressed',on?'true':'false'); });
   $('tab').classList.toggle('due',MODO==='due');
   $('davantiBox').style.display=MODO==='due'?'block':'none';
   const T={
     fripa:'<b>Fripa attiva:</b> tutte bobine singole; almeno 4 centrali dal lato cabina, poi tutte coppie affiancate A–B, in fondo di nuovo centrali fino a riempire il carico. Vale solo per il bilico e solo con questo tasto attivo.',
     diam:'<b>Diametri diversi attivo:</b> si carica prima il formato più piccolo (verso la cabina), poi gli altri in ordine crescente di diametro; ogni formato resta unito, mai diviso. La regola pesi è sospesa. Solo bilico.',
+    conf:'<b>Diametro 1400 attivo:</b> regole per bobine da Ø 1400 su bilico: gioco tra bobine 0, gioco contro le pareti 60 mm, singole tutte davanti (verso la cabina) in alternanza A–B, poi le doppie A–B fino in fondo; se le singole sono dispari, la singola in più resta davanti con le altre, senza centrali. Con altri diametri non si applica.',
     due:'<b>Due scarichi attivo:</b> assegna ogni riga di bobine alla consegna 1 o 2 (colonna «Consegna»), poi scegli quale va davanti (verso la cabina). Ogni consegna resta unita; dentro ognuna i formati vanno dal più piccolo al più grande, mai divisi. La regola pesi è sospesa. Solo bilico.'};
-  $('fripaNota').innerHTML = !MODO ? '' : bil ? T[MODO] : '<b>Forzatura non applicata:</b> vale solo per il bilico (con questo mezzo si usa il calcolo normale).';
+  $('fripaNota').innerHTML = !MODO ? '' : (MODO==='conf'&&bil&&!diamTutti1400()) ? '<b>Diametro 1400 non applicato:</b> vale solo con bobine di Ø 1400 (con altri diametri si usa il calcolo normale).' : bil ? T[MODO] : '<b>Forzatura non applicata:</b> vale solo per il bilico (con questo mezzo si usa il calcolo normale).';
   ['soloSing','nCentrali','schema','suggerisci'].forEach(id=>{ $(id).disabled=att; });
-  $('pesi').disabled=!!forzaAttiva();
+  $('pesi').disabled=!!forzaAttiva()||confAttivo(); ['gPile','mLato','dispari'].forEach(id=>{ $(id).disabled=confAttivo(); });
 }
-function leggiOpz(){ const fr=fripaAttivo(), fz=forzaAttiva(); return {fripa:fr, forza:fz, davanti:+$('davanti').value, schema:fr?'auto':$('schema').value, gapPile:+$('gPile').value||0, margineLato:+$('mLato').value||0, pesi:$('pesi').value==='1', zonaAssi:+$('zonaAssi').value||0, zonaSpost:+$('zonaSpost').value||0, dispari:$('dispari').value==='1', soloSingole:fr||(!fz&&$('soloSing').value==='1'), tutteDoppie:!fr&&!fz&&$('soloSing').value==='2', nCentrali:fr?-1:+$('nCentrali').value, vuotoMax:(+$('vMax').value||85)/100, suggerisci:!fr&&$('suggerisci').value==='1'}; }
+function leggiOpz(){ const fr=fripaAttivo(), fz=forzaAttiva(), cf=confAttivo(); return {fripa:fr, forza:fz, davanti:+$('davanti').value, schema:fr?'auto':$('schema').value, gapPile:cf?0:(+$('gPile').value||0), margineLato:cf?60:(+$('mLato').value||0), pesi:cf?true:$('pesi').value==='1', singDavanti:cf, zonaAssi:+$('zonaAssi').value||0, zonaSpost:+$('zonaSpost').value||0, dispari:cf?false:$('dispari').value==='1', soloSingole:fr||(!fz&&$('soloSing').value==='1'), tutteDoppie:!fr&&!fz&&$('soloSing').value==='2', nCentrali:fr?-1:+$('nCentrali').value, vuotoMax:(+$('vMax').value||85)/100, suggerisci:!fr&&$('suggerisci').value==='1'}; }
 
 const COLORE={L:'#2a7f8e',R:'#3f6fb5',C:'#d9822b'};
 const LATO={L:'lato A',R:'lato B',C:'centro'};
@@ -661,8 +674,8 @@ function calcola(){
   try{ tipi=leggiTipi(); v=leggiVeicolo(); if(!(v.L>0&&v.W>0)) throw new Error('Inserisci lunghezza e larghezza interne del mezzo.'); }
   catch(e){ out.innerHTML=`<div class="warn">${e.message}</div>`; return; }
   const opz=leggiOpz(), piano=pianifica(tipi,v,opz), r=piano.scelto, best=piano.best, lr=piano.lr;
-  const desc=tipi.map(t=>`${t.qta} × Ø${fmt(t.d)} mm${opz.forza==='consegne'?` (cons. ${t.cons})`:''}`).join(' · ')+(opz.fripa?' · FRIPA':'')+(opz.forza==='diam'?' · DIAMETRI DIVERSI':'')+(opz.forza==='consegne'?` · DUE SCARICHI (davanti: consegna ${opz.davanti})`:'');
-  let h=`<section class="card rep"><div class="pr-only"><h1>Calcolo carico bobine – ${v.nome}</h1><p>${new Date().toLocaleDateString('it-IT')} · ${desc} · interno ${fmt(v.L)} × ${fmt(v.W)} mm · v.24.11-a</p></div>`;
+  const desc=tipi.map(t=>`${t.qta} × Ø${fmt(t.d)} mm${opz.forza==='consegne'?` (cons. ${t.cons})`:''}`).join(' · ')+(opz.fripa?' · FRIPA':'')+(opz.singDavanti?' · DIAMETRO 1400':'')+(opz.forza==='diam'?' · DIAMETRI DIVERSI':'')+(opz.forza==='consegne'?` · DUE SCARICHI (davanti: consegna ${opz.davanti})`:'');
+  let h=`<section class="card rep"><div class="pr-only"><h1>Calcolo carico bobine – ${v.nome}</h1><p>${new Date().toLocaleDateString('it-IT')} · ${desc} · interno ${fmt(v.L)} × ${fmt(v.W)} mm · v.26.11-g</p></div>`;
   if(!piano.reels.length) h+=`<div class="big">Nessuna bobina caricabile</div>`;
   else {
     h+=`<div class="hero"><div class="tile t1"><b>${r.D}</b><span>colonne doppie</span></div><div class="tile t2"><b>${r.S}</b><span>singole</span></div><div class="tile t3"><b>${r.centrali}${r.aggiunte&&r.aggiunte.length?' <small style="font-size:20px;font-weight:700">+'+r.aggiunte.length+'</small>':''}</b><span>centrali${r.aggiunte&&r.aggiunte.length?' (+ aggiunte)':''}</span></div><div class="tile t4"><b>${r.caricate}</b><span>bobine caricate</span></div></div>`;
@@ -731,7 +744,7 @@ function calcola(){
 /* avvio */
 Object.entries(VEICOLI).forEach(([k,v])=>{ const o=document.createElement('option'); o.value=k; o.textContent=v.nome; $('veicolo').appendChild(o); });
 $('veicolo').onchange=()=>{ caricaVeicolo($('veicolo').value); applicaFripa(); };
-$('fripa').onclick=()=>setModo('fripa'); $('fDiam').onclick=()=>setModo('diam'); $('fDue').onclick=()=>setModo('due');
+$('fripa').onclick=()=>setModo('fripa'); $('fDiam').onclick=()=>setModo('diam'); $('fDue').onclick=()=>setModo('due'); $('fConf').onclick=()=>setModo('conf'); $('tab').addEventListener('input',applicaFripa);
 $('add').onclick=()=>addRiga();
 $('calcola').onclick=calcola;
 $('veicolo').value='bilico'; caricaVeicolo('bilico');
